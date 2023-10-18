@@ -104,7 +104,7 @@ base64 = "0.21.2"
 uuid = { version = "1.4.0", features = ["serde", "v4"] }
 async-trait = "0.1.71"
 captcha = "0.0.9"
-anyhow = { version = "1.0.71", features = [
+anyhow = { version = "1.0.75", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.0"
