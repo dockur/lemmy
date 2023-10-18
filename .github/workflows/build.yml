@@ -21,7 +21,7 @@ jobs:
         name: Check for new tags in LemmyNet/Lemmy
         run: |
           #!/bin/bash
-          latest_tag=$(curl -s https://api.github.com/repos/lemmynet/lemmy/releases/latest -s | jq .name -r)
+          latest_tag=$(curl -s https://api.github.com/repos/lemmynet/lemmy/releases/latest -s | jq .name -r | head -n1 | cut -d " " -f1)
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
       - 
         name: Check if the new tag exists in DockerHub
