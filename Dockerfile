@@ -52,4 +52,18 @@ COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
 RUN chown lemmy:lemmy /app/lemmy
 USER lemmy
 
+ARG DATE_ARG=""
+ARG BUILD_ARG=0
+ARG VERSION_ARG=0
+ENV VERSION=$VERSION_ARG
+
+LABEL org.opencontainers.image.title="Lemmy"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.created=${DATE_ARG}
+LABEL org.opencontainers.image.revision=${BUILD_ARG}
+LABEL org.opencontainers.image.version=${VERSION_ARG}
+LABEL org.opencontainers.image.source="https://github.com/dockur/lemmy/"
+LABEL org.opencontainers.image.url="https://hub.docker.com/r/dockurr/lemmy/"
+LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
+
 CMD ["/app/lemmy"]
