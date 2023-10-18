@@ -1,4 +1,4 @@
-FROM rust:1.70-slim-buster as builder
+FROM rust:1.73-slim-buster as builder
 
 # Install compilation dependencies
 RUN apt-get update \
