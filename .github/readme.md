@@ -23,6 +23,14 @@ services:
   lemmy:
     container_name: lemmy
     image: dockurr/lemmy:latest
+    ports:
+      - 8536:8536
+    environment:
+      - RUST_LOG="warn"
+    volumes:
+      - /path/to/lemmy.hjson:/config/config.hjson:Z
+    restart: on-failure
+    stop_grace_period: 1m
 ```
 
 [build_url]: https://github.com/dockur/lemmy/
