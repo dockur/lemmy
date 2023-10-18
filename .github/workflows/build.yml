@@ -44,8 +44,9 @@ jobs:
         if: env.exists == 'false'
         id: prepare
         run: |
-        
-          PLATFORMS="linux/amd64,linux/arm64"
+
+          PLATFORMS="linux/amd64"
+          #PLATFORMS="linux/amd64,linux/arm64"
           
           TAGS=()
           TAGS=("${{ secrets.DOCKERHUB_REPO }}:latest")
