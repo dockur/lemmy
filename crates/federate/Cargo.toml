@@ -30,7 +30,7 @@ serde.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 
-async-trait = "0.1.71"
+async-trait = "0.1.74"
 bytes = "1.4.0"
 enum_delegate = "0.2.0"
 moka = { version = "0.11.2", features = ["future"] }
