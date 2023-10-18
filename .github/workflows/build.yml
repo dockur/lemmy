@@ -61,7 +61,7 @@ jobs:
         if: env.exists == 'false'
         run: |
           git config --global url.https://github.com/.insteadOf git://github.com/
-          git clone https://github.com/lemmynet/lemmy.git --single-branch --branch ${{ steps.prepare.outputs.version }}
+          git clone --recurse-submodules -j8 https://github.com/lemmynet/lemmy.git --single-branch --branch ${{ steps.prepare.outputs.version }}
           cp Dockerfile lemmy/
           cp .dockerignore lemmy/
       -
