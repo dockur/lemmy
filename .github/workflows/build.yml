@@ -65,7 +65,7 @@ jobs:
           git clone --recurse-submodules -j8 https://github.com/lemmynet/lemmy.git --single-branch --branch ${{ steps.prepare.outputs.version }}
           cp Dockerfile lemmy/
           cp .dockerignore lemmy/
-          cp /crates/api_common/src/request.rs lemmy/crates/api_common/src/request.rs
+          cp crates/api_common/src/request.rs lemmy/crates/api_common/src/request.rs
       -
         name: Login into Docker Hub
         if: env.exists == 'false'
