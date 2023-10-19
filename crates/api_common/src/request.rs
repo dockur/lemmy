@@ -159,9 +159,9 @@ pub(crate) async fn fetch_direct(
   is_local: bool,
 ) -> Result<PictrsResponse, LemmyError> {
 
-  is_image_content_type(client, image_url).await?;
-
   if is_local {
+
+    is_image_content_type(client, image_url).await?;
 
     let mut pictr_files: Vec<PictrsFile> = Vec::new();
     let pictr_file: PictrsFile = PictrsFile {
