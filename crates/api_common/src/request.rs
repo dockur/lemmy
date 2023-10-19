@@ -152,7 +152,7 @@ pub(crate) async fn fetch_pictrs(
 #[tracing::instrument(skip_all)]
 pub(crate) async fn fetch_direct(
   client: &ClientWithMiddleware,
-  settings: &Settings,
+  _settings: &Settings,
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
 
@@ -253,7 +253,7 @@ pub async fn fetch_site_data(
   url: Option<&Url>,
   include_image: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
-  let pictrs_config = settings.pictrs_config()?;
+  let pictrs_config = settings.pictrs_config();
   match &url {
     Some(url) => {
       // Fetch metadata
