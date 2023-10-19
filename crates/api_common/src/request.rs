@@ -154,11 +154,12 @@ pub(crate) async fn fetch_direct(
   client: &ClientWithMiddleware,
   _settings: &Settings,
   image_url: &Url,
+  is_local: bool,
 ) -> Result<PictrsResponse, LemmyError> {
 
   is_image_content_type(client, image_url).await?;
-  
-  if !image_url.path().contains("pictrs/image") {
+
+  if is_local {
 
     let mut pictr_files: Vec<PictrsFile> = Vec::new();
     let pictr_file: PictrsFile = PictrsFile {
@@ -252,6 +253,7 @@ pub async fn fetch_site_data(
   settings: &Settings,
   url: Option<&Url>,
   include_image: bool,
+  is_local: bool,  
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
   let pictrs_config = settings.pictrs_config().unwrap();
   match &url {
@@ -275,7 +277,7 @@ pub async fn fetch_site_data(
         } else {
 
           let thumbnail_url =
-            fetch_direct_url_from_site_metadata(client, &metadata_option, settings, url)
+            fetch_direct_url_from_site_metadata(client, &metadata_option, settings, url, is_local)
               .await
               .ok();
           (metadata_option, thumbnail_url)
@@ -292,17 +294,18 @@ async fn fetch_direct_url_from_site_metadata(
   metadata_option: &Option<SiteMetadata>,
   settings: &Settings,
   url: &Url,
+  is_local: bool,
 ) -> Result<DbUrl, LemmyError> {
   let pictrs_res = match metadata_option {
     Some(metadata_res) => match &metadata_res.image {
       // Metadata, with image
       // Try to generate a small thumbnail if there's a full sized one from post-links
-      Some(metadata_image) => fetch_direct(client, settings, metadata_image).await,
+      Some(metadata_image) => fetch_direct(client, settings, metadata_image, is_local).await,
       // Metadata, but no image
-      None => fetch_direct(client, settings, url).await,
+      None => fetch_direct(client, settings, url, is_local).await,
     },
     // No metadata, try to fetch the URL as an image
-    None => fetch_direct(client, settings, url).await,
+    None => fetch_direct(client, settings, url, is_local).await,
   }?;
 
   Url::parse(&format!(
