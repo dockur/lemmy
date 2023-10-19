@@ -1,4 +1,4 @@
-FROM rust:1.70-slim-buster as builder
+FROM rust:1.72.0-slim-bookworm as builder
 
 # Install compilation dependencies
 RUN apt-get update \
@@ -36,12 +36,13 @@ RUN \
     fi
 
 # The Debian runner
-FROM debian:buster-slim as lemmy
+FROM debian:bookworm-slim as lemmy
 
 # Install libpq for postgres
 RUN apt-get update \
- && apt-get -y install --no-install-recommends postgresql-client libc6 libssl1.1 ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+ && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl1.1 ca-certificates \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN addgroup --gid 1000 lemmy
 RUN useradd --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
@@ -66,4 +67,4 @@ LABEL org.opencontainers.image.source="https://github.com/dockur/lemmy/"
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/dockurr/lemmy/"
 LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
 
-CMD ["/app/lemmy"]
+ENTRYPOINT ["/usr/bin/tini", "-s", "/app/lemmy"]
