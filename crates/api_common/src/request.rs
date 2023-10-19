@@ -121,9 +121,15 @@ pub(crate) async fn fetch_pictrs(
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
   let pictrs_config = settings.pictrs_config()?;
-  is_image_content_type(client, image_url).await?;
 
-  if pictrs_config.cache_remote_images {
+  if (image_url.path().contains("pictrs/image")) && (!pictrs_config.cache_remote_images) {
+
+    Err(LemmyErrorType::PictrsCachingDisabled)?
+
+  } else {
+  
+    is_image_content_type(client, image_url).await?;
+  
     // fetch remote non-pictrs images for persistent thumbnail link
     let fetch_url = format!(
       "{}image/download?url={}",
@@ -144,8 +150,7 @@ pub(crate) async fn fetch_pictrs(
     } else {
       Err(LemmyErrorType::PictrsResponseError(response.msg))?
     }
-  } else {
-    Err(LemmyErrorType::PictrsCachingDisabled)?
+    
   }
 }
 
