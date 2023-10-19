@@ -253,6 +253,7 @@ pub async fn fetch_site_data(
   url: Option<&Url>,
   include_image: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
+  let pictrs_config = settings.pictrs_config()?;
   match &url {
     Some(url) => {
       // Fetch metadata
@@ -262,8 +263,6 @@ pub async fn fetch_site_data(
       if !include_image {
         (metadata_option, None)
       } else {
-
-        let pictrs_config = settings.pictrs_config();
 
         if pictrs_config.cache_remote_images {
 
