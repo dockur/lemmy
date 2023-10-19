@@ -11,7 +11,7 @@
 
 </div></h1>
 
-Docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a link aggregator and forum for the fediverse.
+Multi-platform docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a link aggregator and forum for the fediverse.
 
 ## How to use
 
