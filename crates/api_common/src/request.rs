@@ -263,10 +263,10 @@ pub async fn fetch_site_data(
         (metadata_option, None)
       } else {
 
-        let pictrs_config = settings.pictrs_config()?;
-  
-        if (pictrs_config.cache_remote_images) {
-  
+        let pictrs_config = settings.pictrs_config();
+
+        if pictrs_config.cache_remote_images {
+
           let thumbnail_url =
             fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
               .await
