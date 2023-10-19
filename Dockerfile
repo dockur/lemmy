@@ -40,7 +40,7 @@ FROM debian:bookworm-slim as lemmy
 
 # Install libpq for postgres
 RUN apt-get update \
- && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl1.1 ca-certificates \
+ && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl3 ca-certificates \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
