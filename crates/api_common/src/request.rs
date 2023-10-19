@@ -253,7 +253,7 @@ pub async fn fetch_site_data(
   url: Option<&Url>,
   include_image: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
-  let pictrs_config = settings.pictrs_config();
+  let pictrs_config = settings.pictrs_config().unwrap();
   match &url {
     Some(url) => {
       // Fetch metadata
