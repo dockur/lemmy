@@ -222,7 +222,6 @@ impl Object for ApubPost {
             context.settings(),
             Some(url),
             include_image,
-            false,
           )
           .await
         }
