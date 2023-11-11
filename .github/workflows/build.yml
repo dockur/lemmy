@@ -104,7 +104,7 @@ jobs:
         name: Add custom code
         if: env.exists == 'false'
         run: |  
-          #cp crates/api_common/src/request.rs lemmy/crates/api_common/src/request.rs
+          cp crates/db_schema/src/impls/post.rs lemmy/crates/db_schema/src/impls/post.rs
       - 
         name: Build custom image
         if: env.exists == 'false'
