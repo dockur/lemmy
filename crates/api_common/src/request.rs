@@ -122,9 +122,11 @@ pub(crate) async fn fetch_pictrs(
   image_url: &Url,
 ) -> Result<PictrsResponse, LemmyError> {
   let pictrs_config = settings.pictrs_config()?;
-  is_image_content_type(client, image_url).await?;
 
   if pictrs_config.cache_external_link_previews {
+
+    is_image_content_type(client, image_url).await?;
+    
     // fetch remote non-pictrs images for persistent thumbnail link
     let fetch_url = format!(
       "{}image/download?url={}",
@@ -145,6 +147,35 @@ pub(crate) async fn fetch_pictrs(
     } else {
       Err(LemmyErrorType::PictrsResponseError(response.msg))?
     }
+  } else {
+    Err(LemmyErrorType::PictrsCachingDisabled)?
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub(crate) async fn fetch_direct(
+  client: &ClientWithMiddleware,
+  _settings: &Settings,
+  image_url: &Url,
+  is_local: bool,
+) -> Result<PictrsResponse, LemmyError> {
+
+  if is_local {
+
+    is_image_content_type(client, image_url).await?;
+
+    let mut pictr_files: Vec<PictrsFile> = Vec::new();
+    let pictr_file: PictrsFile = PictrsFile {
+      file: image_url.to_string(),
+      delete_token: String::new(),
+    };
+    pictr_files.push(pictr_file);
+    let response: PictrsResponse = PictrsResponse {
+      files: pictr_files,
+      msg: "ok".to_owned(),
+    };
+    return Ok(response);
+
   } else {
     Err(LemmyErrorType::PictrsCachingDisabled)?
   }
@@ -225,6 +256,7 @@ pub async fn fetch_site_data(
   settings: &Settings,
   url: Option<&Url>,
   include_image: bool,
+  is_local: bool,
 ) -> (Option<SiteMetadata>, Option<DbUrl>) {
   match &url {
     Some(url) => {
@@ -235,15 +267,55 @@ pub async fn fetch_site_data(
       if !include_image {
         (metadata_option, None)
       } else {
-        let thumbnail_url =
-          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
-            .await
-            .ok();
-        (metadata_option, thumbnail_url)
+        let pictrs_config = settings.pictrs_config().unwrap();
+        if pictrs_config.cache_external_link_previews {
+
+          let thumbnail_url =
+            fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
+              .await
+              .ok();
+          (metadata_option, thumbnail_url)
+
+        } else {
+
+          let thumbnail_url =
+            fetch_direct_url_from_site_metadata(client, &metadata_option, settings, url, is_local)
+              .await
+              .ok();
+          (metadata_option, thumbnail_url)
+
+        }
       }
     }
     None => (None, None),
   }
+}
+
+async fn fetch_direct_url_from_site_metadata(
+  client: &ClientWithMiddleware,
+  metadata_option: &Option<SiteMetadata>,
+  settings: &Settings,
+  url: &Url,
+  is_local: bool,
+) -> Result<DbUrl, LemmyError> {
+  let pictrs_res = match metadata_option {
+    Some(metadata_res) => match &metadata_res.image {
+      // Metadata, with image
+      // Try to generate a small thumbnail if there's a full sized one from post-links
+      Some(metadata_image) => fetch_direct(client, settings, metadata_image, is_local).await,
+      // Metadata, but no image
+      None => fetch_direct(client, settings, url, is_local).await,
+    },
+    // No metadata, try to fetch the URL as an image
+    None => fetch_direct(client, settings, url, is_local).await,
+  }?;
+
+  Url::parse(&format!(
+    "{}",
+    pictrs_res.files.first().expect("missing pictrs file").file
+  ))
+  .map(Into::into)
+  .map_err(Into::into)
 }
 
 async fn fetch_pictrs_url_from_site_metadata(
