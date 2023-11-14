@@ -33,7 +33,7 @@ jobs:
         name: Parse tag from query output
         run: |
           #!/bin/bash
-          latest_tag=$(echo '${{ steps.latest_tag.outputs.data }}' | jq '.repository.refs.edges[][].name')
+          latest_tag=$(echo '${{ steps.latest_tag.outputs.data }}' | jq '.repository.refs.edges[][].name' -r)
           echo "Found tag: ${latest_tag}" 
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
       - 
