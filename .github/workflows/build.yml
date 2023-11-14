@@ -33,7 +33,7 @@ jobs:
         name: Parse tag from query json
         run: |
           #!/bin/bash
-          json=$(echo "${{ steps.latest_tag.outputs.data }}" | tr "\n" " ")
+          json='$(echo "${{ steps.latest_tag.outputs.data }}" | tr "\n" " ")'
           echo "X${json}X" 
           latest_tag=$(echo "$json" | jq '.repository.refs.edges[][].name')
           #latest_tag=$(echo "$latest_tag" | jq '.repository.refs.edges["node"][].name')
