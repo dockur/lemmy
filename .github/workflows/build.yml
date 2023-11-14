@@ -24,7 +24,7 @@ jobs:
                   edges {
                     node {
                       name
-             } } } } } }
+               } } } } }
           repo: lemmy
           owner: lemmynet
         env:
