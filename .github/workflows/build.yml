@@ -26,6 +26,8 @@ jobs:
                     }
                  }
               }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - 
         name: Check for new tags in LemmyNet/Lemmy
         run: |
