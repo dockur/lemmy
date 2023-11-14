@@ -42,7 +42,7 @@ jobs:
         run: |
           #!/bin/bash
           dockerhub_tags=$(curl -s https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_REPO }}/tags | jq -r '.results[].name')
-          if echo "${dockerhub_tags}" | grep -q "${{ env.latest_tag }}"; then
+          if echo "${dockerhub_tags}" | grep -q '"${{ env.latest_tag }}"'; then
             echo "exists=true" >> $GITHUB_ENV
           else
             echo "exists=false" >> $GITHUB_ENV
