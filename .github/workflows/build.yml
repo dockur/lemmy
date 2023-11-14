@@ -34,7 +34,7 @@ jobs:
         run: |
           #!/bin/bash
           latest_tag="${{ steps.latest_tag.outputs.data }}"
-          echo "$latest_tag" | jq '.repository.refs.edges["node"][].name'
+          echo "$latest_tag" | tr -d '\n' | jq '.repository.refs.edges[][].name'
           #latest_tag=$(echo "$latest_tag" | jq '.repository.refs.edges["node"][].name')
           #echo "X${latest_tag}X" 
           #latest_tag=$(curl -s https://api.github.com/repos/lemmynet/lemmy/git/matching-refs/tags/0.1 -s | jq '.[-1].ref' -r | sed 's#.*/##')
