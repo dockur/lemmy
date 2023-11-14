@@ -18,12 +18,13 @@ jobs:
         id: latest_tag
         with:
           query: |
-            query repository(owner:lemmynet,name:lemmy) {
+            query tag() {
+              repository(owner:lemmynet,name:lemmy) {
                 refs(refPrefix: "refs/tags/", last: 1, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) {
                   edges {
                     node {
                       name
-             } } }
+             } } } } } }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - 
