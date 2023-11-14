@@ -35,7 +35,7 @@ jobs:
           #!/bin/bash
           latest_tag=$(echo '${{ steps.latest_tag.outputs.data }}' | jq '.repository.refs.edges[][].name' -r)
           [ -z "$latest_tag" ] && echo "Tag not found!" && exit 1
-          echo "Found tag: ${latest_tag}" 
+          echo "Found tag: \"${latest_tag}\"" 
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
       - 
         name: Check if the tag exists in DockerHub
@@ -43,7 +43,7 @@ jobs:
         run: |
           #!/bin/bash
           dockerhub_tags=$(curl -s https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_REPO }}/tags | jq -r '.results[].name')
-          if echo "${dockerhub_tags}" | grep -q "\"${{ env.latest_tag }}\""; then
+          if echo "${dockerhub_tags}" | grep -qx "${{ env.latest_tag }}"; then
             echo "exists=true" >> $GITHUB_ENV
           else
             echo "exists=false" >> $GITHUB_ENV
