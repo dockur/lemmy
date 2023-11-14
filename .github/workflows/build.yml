@@ -18,13 +18,15 @@ jobs:
         id: latest_tag
         with:
           query: |
-            query tag(($owner: String!, $repo: String!) {
-              repository(owner:lemmynet,name:lemmy) {
+            query tag($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
                 refs(refPrefix: "refs/tags/", last: 1, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) {
                   edges {
                     node {
                       name
              } } } } } }
+          repo: lemmy
+          owner: lemmynet
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - 
