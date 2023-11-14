@@ -13,7 +13,7 @@ jobs:
       contents: read
     steps:
       - 
-        name: Run query
+        name: Run graphql query
         uses: octokit/graphql-action@v2.x
         id: latest_tag
         with:
@@ -30,10 +30,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - 
-        name: Check for new tags in LemmyNet/Lemmy
+        name: Parse tag from query json
         run: |
           #!/bin/bash
-          latest_tag=${{ steps.latest_tag.outputs.data }}
+          latest_tag="${{ steps.latest_tag.outputs.data }}"
+          echo "X${latest_tag}X" 
           latest_tag=$(echo $latest_tag | jq '.repository.refs.eges["node"][].name)
           echo "X${latest_tag}X" 
           #latest_tag=$(curl -s https://api.github.com/repos/lemmynet/lemmy/git/matching-refs/tags/0.1 -s | jq '.[-1].ref' -r | sed 's#.*/##')
