@@ -13,15 +13,26 @@ jobs:
       contents: read
     steps:
       - 
-        name: Checkout
-        uses: actions/checkout@v4
+        name: Run query
+        uses: octokit/graphql-action@v2.x
+        id: latest_tag
         with:
-          fetch-depth: 0
+          query: |
+            query repository(owner: "lemmynet", name: "lemmy") {
+                refs(refPrefix: "refs/tags/", last: 1, orderBy: {field: TAG_COMMIT_DATE, direction: ASC}) {
+                  edges {
+                    node {
+                      name
+                    }
+                 }
+              }
       - 
         name: Check for new tags in LemmyNet/Lemmy
         run: |
           #!/bin/bash
-          latest_tag="0.19.0-alpha.4"
+          latest_tag=${{ steps.latest_tag.outputs.data }}
+          latest_tag=$(echo $latest_tag | jq '.repository.refs.eges["node"][].name)
+          echo "X${latest_tag}X" 
           #latest_tag=$(curl -s https://api.github.com/repos/lemmynet/lemmy/git/matching-refs/tags/0.1 -s | jq '.[-1].ref' -r | sed 's#.*/##')
           #latest_tag=$(curl -s https://api.github.com/repos/lemmynet/lemmy/releases/latest -s | jq .name -r | head -n1 | cut -d " " -f1  | tail -c+2)
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
@@ -36,6 +47,12 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_ENV
           fi
+      - 
+        name: Checkout
+        if: env.exists == 'false'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          
       - 
         name: Set up Docker Buildx
         if: env.exists == 'false'
