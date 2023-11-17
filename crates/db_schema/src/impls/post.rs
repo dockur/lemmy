@@ -109,7 +109,7 @@ impl Post {
       .filter(local.eq(true))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
-      .filter(published.ge(Utc::now().naive_utc() - Duration::days(31)))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(365)))
       .order(published.desc())
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
