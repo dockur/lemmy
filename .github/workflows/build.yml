@@ -17,6 +17,9 @@ jobs:
         uses: octokit/graphql-action@v2.x
         id: latest_tag
         with:
+          variables: |
+            repo: lemmy
+            owner: lemmynet
           query: |
             query tag($owner: String!, $repo: String!) {
               repository(owner: $owner, name: $repo) {
@@ -24,9 +27,7 @@ jobs:
                   edges {
                     node {
                       name
-               } } } } }
-          repo: lemmy
-          owner: lemmynet
+               } } } } }            
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - 
