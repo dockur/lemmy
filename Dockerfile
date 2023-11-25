@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
     fi
 
 # Release build
-RUN set -ex; \
+RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
@@ -45,29 +45,30 @@ FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 ARG RUST_RELEASE_MODE
 ARG CARGO_BUILD_FEATURES
 
-WORKDIR /lemmy
+WORKDIR /home/lemmy/src
+USER 10001:10001
 
-COPY . ./
+COPY --chown=lemmy:lemmy . ./
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
     CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
 
 # Debug build
-RUN --mount=type=cache,target=./target set -ex; \
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+        mv target/"${RUST_RELEASE_MODE}"/lemmy_server /home/lemmy/lemmy_server; \
     fi
 
 # Release build
-RUN set -ex; \
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+        mv target/"${RUST_RELEASE_MODE}"/lemmy_server /home/lemmy/lemmy_server; \
     fi
 
 # amd64 base runner
