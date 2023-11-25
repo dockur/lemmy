@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/debug/lemmy_server ./lemmy; \
+        mv target/debug/lemmy_server ./lemmy_server; \
     fi
 
 # Release build
@@ -32,7 +32,7 @@ RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/release/lemmy_server ./lemmy; \
+        mv target/release/lemmy_server ./lemmy_server; \
     fi
 
 # ARM64 builder
@@ -42,17 +42,17 @@ FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 RUN apt-get update \
- && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl3 ca-certificates \
+ && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy/lemmy_server /usr/local/bin
+COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
 RUN apt-get update \
- && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl3 ca-certificates \
+ && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
