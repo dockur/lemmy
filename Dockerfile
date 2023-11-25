@@ -50,10 +50,9 @@ USER 10001:10001
 
 COPY --chown=lemmy:lemmy . ./
 
+ENV PATH="/root/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
     CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
-
-RUN bash -c "source /home/lemmy/.cargo/env"
 
 # Debug build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
