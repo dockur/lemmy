@@ -50,7 +50,7 @@ USER 10001:10001
 
 COPY --chown=lemmy:lemmy . ./
 
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
     CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
 
