@@ -59,7 +59,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server /home/lemmy/lemmy_server; \
+        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
 # Release build
@@ -68,7 +68,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server /home/lemmy/lemmy_server; \
+        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
 # amd64 base runner
