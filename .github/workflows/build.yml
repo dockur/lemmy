@@ -43,7 +43,6 @@ jobs:
           [[ "$latest_tag" = v* ]] && latest_tag="${latest_tag:1}"
           echo "Found tag: \"${latest_tag}\"" 
           [[ "${latest_tag,,}" == *"alpha"* ]] && latest_tag=""
-          latest_tag="0.19.0-rc.7"
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
       - 
         name: Check if the tag exists in DockerHub
