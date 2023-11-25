@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/debug/lemmy_server ./lemmy_server; \
+        mv target/debug/lemmy_server ./lemmy; \
     fi
 
 # Release build
@@ -32,7 +32,7 @@ RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/release/lemmy_server ./lemmy_server; \
+        mv target/release/lemmy_server ./lemmy; \
     fi
 
 # ARM64 builder
