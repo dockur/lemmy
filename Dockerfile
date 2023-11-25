@@ -48,7 +48,7 @@ ARG CARGO_BUILD_FEATURES
 WORKDIR /home/lemmy/src
 USER 10001:10001
 
-COPY --chown=lemmy:lemmy . ./
+COPY --chown=10001:10001 . ./
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
@@ -63,7 +63,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     fi
 
 # Release build
-RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
+RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
