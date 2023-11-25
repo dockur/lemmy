@@ -34,7 +34,7 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
 RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-        [[ -z "$USE_RELEASE_CACHE" ]] || cargo clean --release; \
+        [[ -z "$USE_RELEASE_CACHE" ]] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv target/release/lemmy_server ./lemmy_server; \
     fi
@@ -62,13 +62,16 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
 RUN set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
-        [[ -z "$USE_RELEASE_CACHE" ]] || cargo clean --release; \
+        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv target/release/lemmy_server /home/lemmy/lemmy_server; \
     fi
 
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
+
+ARG DEBCONF_NOWARNINGS="yes"
+ARG DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update \
  && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
@@ -79,6 +82,9 @@ COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
+
+ARG DEBCONF_NOWARNINGS="yes"
+ARG DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update \
  && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
