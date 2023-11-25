@@ -8,9 +8,9 @@ ARG ARM_BUILDER_IMAGE="dessalines/lemmy-builder-arm64:0.19.0-alpha.12"
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
 ARG ARM_RUNNER_IMAGE=debian:bookworm-slim
 
-ARG UNAME=lemmy
 ARG UID=1000
 ARG GID=1000
+ARG UNAME=lemmy
 
 # AMD64 builder
 FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
@@ -78,9 +78,9 @@ LABEL org.opencontainers.image.source="https://github.com/dockur/lemmy/"
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/dockurr/lemmy/"
 LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
 
-ARG UNAME
 ARG GID
 ARG UID
+ARG UNAME
 
 RUN groupadd -g ${GID} -o ${UNAME} && \
     useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
