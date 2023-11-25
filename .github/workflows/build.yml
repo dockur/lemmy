@@ -42,7 +42,7 @@ jobs:
           [ -z "$latest_tag" ] && echo "Tag not found!" && exit 1
           [[ "$latest_tag" = v* ]] && latest_tag="${latest_tag:1}"
           echo "Found tag: \"${latest_tag}\"" 
-          #[[ "${latest_tag,,}" == *"alpha"* ]] && latest_tag=""
+          [[ "${latest_tag,,}" == *"alpha"* ]] && latest_tag=""
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
       - 
         name: Check if the tag exists in DockerHub
@@ -127,6 +127,8 @@ jobs:
           docker buildx build --platform ${{ steps.prepare.outputs.docker_platforms }} \
             --output "type=image,push=true" \
             --progress=plain \
+            --build-arg "RUST_RELEASE_MODE=release" \
+            --build-arg "CARGO_BUILD_FEATURES=default" \
             --build-arg "BUILD_ARG=${GITHUB_RUN_ID}" \
             --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \
             --build-arg "DATE_ARG=${{ steps.prepare.outputs.build_date }}" \
@@ -158,6 +160,8 @@ jobs:
           docker buildx build --platform ${{ steps.prepare.outputs.docker_platforms }} \
             --output "type=image,push=true" \
             --progress=plain \
+            --build-arg "RUST_RELEASE_MODE=release" \
+            --build-arg "CARGO_BUILD_FEATURES=default" \
             --build-arg "BUILD_ARG=${GITHUB_RUN_ID}" \
             --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \
             --build-arg "DATE_ARG=${{ steps.prepare.outputs.build_date }}" \
