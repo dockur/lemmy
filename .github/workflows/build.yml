@@ -130,8 +130,7 @@ jobs:
             --build-arg "RUST_RELEASE_MODE=release" \
             --build-arg "CARGO_BUILD_FEATURES=default" \
             --build-arg "BUILD_ARG=${GITHUB_RUN_ID}" \
-            --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \
-            --build-arg "LEMMY_VERSION=${{ steps.prepare.outputs.version }}" \            
+            --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \            
             --build-arg "DATE_ARG=${{ steps.prepare.outputs.build_date }}" \
             --build-arg "VCS_REF=${GITHUB_SHA::8}" \
             $(printf "%s" "${TAGS[@]/#/ --tag }" ) .
@@ -165,7 +164,6 @@ jobs:
             --build-arg "CARGO_BUILD_FEATURES=default" \
             --build-arg "BUILD_ARG=${GITHUB_RUN_ID}" \
             --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \
-            --build-arg "LEMMY_VERSION=${{ steps.prepare.outputs.version }}" \
             --build-arg "DATE_ARG=${{ steps.prepare.outputs.build_date }}" \
             --build-arg "VCS_REF=${GITHUB_SHA::8}" \
             $(printf "%s" "${TAGS[@]/#/ --tag }" ) .
