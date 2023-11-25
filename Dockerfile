@@ -1,57 +1,65 @@
-FROM rust:1.74-slim-bookworm as builder
-
-# Install compilation dependencies
-RUN apt-get update \
- && apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev git \
- && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# comma-seperated list of features to enable
+ARG RUST_VERSION=1.74
+ARG RUST_RELEASE_MODE="release"
 ARG CARGO_BUILD_FEATURES=default
 
-# This can be set to release using --build-arg
-ARG RUST_RELEASE_MODE="release"
+ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
+ARG ARM_BUILDER_IMAGE="dessalines/lemmy-builder-arm64:0.19.0-alpha.12"
 
-COPY . .
+ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
+ARG ARM_RUNNER_IMAGE=debian:bookworm-slim
 
-# Build the project
+ARG UNAME=lemmy
+ARG UID=1000
+ARG GID=1000
 
-# Debug mode build
-RUN --mount=type=cache,target=/app/target \
-    if [ "$RUST_RELEASE_MODE" = "debug" ] ; then \
-      echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
-      && echo "Building Lemmy $(git describe --tag), Cargo Target: $(rustc -vV | sed -n 's|host: ||p'), Mode: $RUST_RELEASE_MODE" \
-      && cargo build --features ${CARGO_BUILD_FEATURES} \
-      && cp ./target/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
+# AMD64 builder
+FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
+
+WORKDIR /lemmy
+
+COPY . ./
+
+# Debug build
+RUN --mount=type=cache,target=/lemmy/target set -ex; \
+    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --features "${CARGO_BUILD_FEATURES}"; \
+        mv target/debug/lemmy_server ./lemmy; \
     fi
 
-# Release mode build
-RUN \
-    if [ "$RUST_RELEASE_MODE" = "release" ] ; then \
-      echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs" \
-      && echo "Building Lemmy $(git describe --tag), Cargo Target: $(rustc -vV | sed -n 's|host: ||p'), Mode: $RUST_RELEASE_MODE" \
-      && cargo build --features ${CARGO_BUILD_FEATURES} --release \
-      && cp ./target/$RUST_RELEASE_MODE/lemmy_server /app/lemmy_server; \
+# Release build
+RUN set -ex; \
+    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+        mv target/release/lemmy_server ./lemmy; \
     fi
 
-# The Debian runner
-FROM debian:bookworm-slim as lemmy
+# ARM64 builder
+FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 
-# Install libpq for postgres
+# amd64 base runner
+FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
+
 RUN apt-get update \
  && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl3 ca-certificates \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN addgroup --gid 1000 lemmy
-RUN useradd --no-create-home --shell /bin/sh --uid 1000 --gid 1000 lemmy
+COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy/lemmy_server /usr/local/bin
 
-# Copy resources
-COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
+# arm base runner
+FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
-RUN chown lemmy:lemmy /app/lemmy
-USER lemmy
+RUN apt-get update \
+ && apt-get -y install --no-install-recommends tini postgresql-client libc6 libssl3 ca-certificates \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
+
+# Final image that use a base runner based on the target OS and ARCH
+FROM runner-${TARGETOS}-${TARGETARCH}
 
 ARG DATE_ARG=""
 ARG BUILD_ARG=0
@@ -67,4 +75,11 @@ LABEL org.opencontainers.image.source="https://github.com/dockur/lemmy/"
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/dockurr/lemmy/"
 LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
 
-ENTRYPOINT ["/usr/bin/tini", "-s", "/app/lemmy"]
+RUN groupadd -g ${GID} -o ${UNAME} && \
+    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
+USER $UNAME
+
+EXPOSE 8536
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["/usr/bin/tini", "-s", "lemmy_server"]
