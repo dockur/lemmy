@@ -63,7 +63,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     fi
 
 # Release build
-RUN set -ex; \
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
