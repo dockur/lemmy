@@ -50,6 +50,8 @@ USER 10001:10001
 
 COPY --chown=lemmy:lemmy . ./
 
+RUN bash -c "source $HOME/.cargo/env 
+
 # Debug build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
