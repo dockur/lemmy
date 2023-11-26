@@ -6,3 +6,16 @@ ansible
 tests
 *.sh
 pictrs
+
+readmes
+.dockerignore
+.github
+.gitignore
+.gitlab-ci.yml
+.gitmodules
+.vscode
+Dockerfile
+Dockerfile.archive
+docker-compose.yml
+  
+*.md
