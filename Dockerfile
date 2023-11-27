@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=./target set -ex; \
     echo "Building Lemmy $(git describe --tag), Cargo Target: $(rustc -vV | sed -n 's|host: ||p'), Mode: $RUST_RELEASE_MODE"; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-    else; \
+    else \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
     fi; \
@@ -50,7 +50,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     echo "Building Lemmy $(git describe --tag), Cargo Target: $(rustc -vV | sed -n 's|host: ||p'), Mode: $RUST_RELEASE_MODE"; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-    else; \
+    else \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
     fi; \
