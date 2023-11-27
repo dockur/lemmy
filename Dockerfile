@@ -8,10 +8,6 @@ ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.1.0"
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
 ARG ARM_RUNNER_IMAGE=debian:bookworm-slim
 
-ARG UID=1000
-ARG GID=1000
-ARG UNAME=lemmy
-
 # AMD64 builder
 FROM --platform=linux/amd64 ${AMD_BUILDER_IMAGE} AS build-amd64
 
@@ -19,7 +15,6 @@ ARG RUST_RELEASE_MODE
 ARG CARGO_BUILD_FEATURES
 
 WORKDIR /home/lemmy/src
-
 COPY . ./
  
 # Build
@@ -40,12 +35,12 @@ RUN --mount=type=cache,target=./target set -ex; \
 # ARM64 builder
 FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 
+USER 10001:10001
+
 ARG RUST_RELEASE_MODE
 ARG CARGO_BUILD_FEATURES
 
 WORKDIR /home/lemmy/src
-USER 10001:10001
-
 COPY --chown=lemmy:lemmy . ./
 
 ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
@@ -67,7 +62,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     
     mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" ./lemmy_server; \
 
-# amd64 base runner
+# AMD64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 ARG DEBCONF_NOWARNINGS="yes"
@@ -80,7 +75,7 @@ RUN apt-get update \
 
 COPY --from=build-amd64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 
-# arm base runner
+# ARM64 base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
 ARG DEBCONF_NOWARNINGS="yes"
@@ -110,9 +105,9 @@ LABEL org.opencontainers.image.source="https://github.com/dockur/lemmy/"
 LABEL org.opencontainers.image.url="https://hub.docker.com/r/dockurr/lemmy/"
 LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
 
-ARG GID
-ARG UID
-ARG UNAME
+ARG UID=1000
+ARG GID=1000
+ARG UNAME=lemmy
 
 RUN groupadd -g ${GID} -o ${UNAME} && \
     useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
