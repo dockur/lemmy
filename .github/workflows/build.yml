@@ -38,28 +38,22 @@ jobs:
         name: Parse tag from query output
         run: |
           #!/bin/bash
-          
-          echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
-          echo "Tag name from github.ref_name: ${{  github.ref_name }}"
-         
           latest_tag=$(echo '${{ steps.latest_tag.outputs.data }}' | jq '.repository.refs.edges[][].name' -r)
           [ -z "$latest_tag" ] && echo "Tag not found!" && exit 1
           [[ "$latest_tag" = v* ]] && latest_tag="${latest_tag:1}"
           echo "Found tag: \"${latest_tag}\"" 
           [[ "${latest_tag,,}" == *"alpha"* ]] && latest_tag=""
+          [ -z "${latest_tag}" ] && echo "exists=true" >> $GITHUB_ENV && exit 0
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
       - 
-        name: Check if the tag exists in DockerHub
-        id: check-tag
-        run: |
-          #!/bin/bash
-          [ -z "${{ env.latest_tag }}" ] && echo "exists=true" >> $GITHUB_ENV && exit 0
-          dockerhub_tags=$(curl -s https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_REPO }}/tags | jq -r '.results[].name')
-          if echo "${dockerhub_tags}" | grep -qx "${{ env.latest_tag }}"; then
-            echo "exists=true" >> $GITHUB_ENV
-          else
-            echo "exists=false" >> $GITHUB_ENV
-          fi
+        name: Check if the tag exists locally
+        uses: mukunku/tag-exists-action@v1.4.0
+        id: checkTag
+        with: 
+          tag: 'v${{ env.latest_tag }}'         
+      -
+        name: Set variable
+        run: echo "exists=${{ steps.checkTag.outputs.exists }}" >> $GITHUB_ENV
       - 
         name: Checkout
         if: env.exists == 'false'
