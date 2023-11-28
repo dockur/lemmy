@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=./target set -ex; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
     fi; \
-    mv "./target/${RUST_RELEASE_MODE}/lemmy_server" ./lemmy_server;
+    mv "./target/${RUST_RELEASE_MODE}/lemmy_server" ./../lemmy_server;
 
 # ARM64 builder
 FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
@@ -54,7 +54,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
         [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
     fi; \
-    mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" ./lemmy_server;
+    mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" ./../lemmy_server;
 
 # AMD64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
