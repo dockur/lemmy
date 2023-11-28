@@ -13,6 +13,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       packages: write
       contents: read
     steps:
