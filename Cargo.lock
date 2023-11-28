@@ -1320,6 +1320,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "deadpool"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb84100978c1c7b37f09ed3ce3e5f843af02c2a2c431bae5b19230dad2c1b490"
+dependencies = [
+ "async-trait",
+ "deadpool-runtime",
+ "num_cpus",
+ "tokio",
+]
+
+[[package]]
 name = "deadpool-runtime"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1421,27 +1433,12 @@ dependencies = [
 
 [[package]]
 name = "diesel-async"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7e7974099f0d9bde0e010dd3a673555276a474f3362a7a52ab535a57b7c5056"
-dependencies = [
- "async-trait",
- "deadpool",
- "diesel",
- "futures-util",
- "scoped-futures",
- "tokio",
- "tokio-postgres",
-]
-
-[[package]]
-name = "diesel-async"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acada1517534c92d3f382217b485db8a8638f111b0e3f2a2a8e26165050f77be"
 dependencies = [
  "async-trait",
- "deadpool",
+ "deadpool 0.9.5",
  "diesel",
  "futures-util",
  "scoped-futures",
@@ -2662,9 +2659,9 @@ dependencies = [
  "async-trait",
  "bcrypt",
  "chrono",
- "deadpool",
+ "deadpool 0.10.0",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",
@@ -2696,7 +2693,7 @@ version = "0.19.0-rc.8"
 dependencies = [
  "actix-web",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "diesel_ltree",
  "lemmy_db_schema",
  "lemmy_utils",
@@ -2714,7 +2711,7 @@ version = "0.19.0-rc.8"
 dependencies = [
  "chrono",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "lemmy_db_schema",
  "serde",
  "serde_with",
@@ -2730,7 +2727,7 @@ name = "lemmy_db_views_moderator"
 version = "0.19.0-rc.8"
 dependencies = [
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "lemmy_db_schema",
  "serde",
  "serde_with",
@@ -2745,7 +2742,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "futures",
  "lemmy_api_common",
  "lemmy_apub",
@@ -2796,7 +2793,7 @@ dependencies = [
  "clokwerk",
  "console-subscriber 0.1.10",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "futures-util",
  "lemmy_api",
  "lemmy_api_common",
@@ -3771,9 +3768,9 @@ dependencies = [
  "config",
  "console-subscriber 0.2.0",
  "dashmap",
- "deadpool",
+ "deadpool 0.9.5",
  "diesel",
- "diesel-async 0.4.1",
+ "diesel-async",
  "diesel-derive-enum",
  "flume",
  "futures-core",
