@@ -56,6 +56,10 @@ jobs:
           val="${{ steps.checkTag.outputs.exists }}"
           [[ "${{ env.latest_tag }}" == *"alpha"* ]] && val="true"
           echo "exists=${val}" >> $GITHUB_ENV
+      -
+        name: Cancel
+        if: env.exists == 'true'
+        uses: andymckay/cancel-action@0.3          
       - 
         name: Checkout
         if: env.exists == 'false'
