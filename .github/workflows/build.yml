@@ -58,7 +58,7 @@ jobs:
           [[ "${{ env.latest_tag }}" == *"alpha"* ]] && val="true"
           echo "exists=${val}" >> $GITHUB_ENV
       -
-        name: Cancel if tag is found
+        name: Finish when found
         if: env.exists == 'true'
         uses: action-pack/cancel@v1          
       - 
