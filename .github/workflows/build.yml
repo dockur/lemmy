@@ -51,16 +51,16 @@ jobs:
         with: 
           tag: 'v${{ env.latest_tag }}'         
       -
-        name: Finish when found
+        name: Check if the tag is not alpha
         run: |
           #!/bin/bash
           val="${{ steps.checkTag.outputs.exists }}"
           [[ "${{ env.latest_tag }}" == *"alpha"* ]] && val="true"
           echo "exists=${val}" >> $GITHUB_ENV
       -
-        name: Cancel
+        name: Cancel if tag is found
         if: env.exists == 'true'
-        uses: andymckay/cancel-action@0.3          
+        uses: action-pack/cancel@v1          
       - 
         name: Checkout
         if: env.exists == 'false'
