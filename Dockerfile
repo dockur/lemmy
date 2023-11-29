@@ -85,12 +85,6 @@ COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 # Final image that use a base runner based on the target OS and ARCH
 FROM runner-${TARGETOS}-${TARGETARCH}
 
-ARG VERSION_ARG=0
-ENV VERSION=$VERSION_ARG
-
-LABEL org.opencontainers.image.title="Lemmy"
-LABEL org.opencontainers.image.description="A link aggregator and forum for the fediverse"
-
 ARG UID=1000
 ARG GID=1000
 ARG UNAME=lemmy
