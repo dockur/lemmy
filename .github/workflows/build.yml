@@ -7,7 +7,7 @@ on:
 concurrency:
   group: build
   cancel-in-progress: false
-  
+
 jobs:
   build:
     name: Build
@@ -62,42 +62,11 @@ jobs:
         if: env.exists == 'false'
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0          
+          fetch-depth: 0
       - 
         name: Set up Docker Buildx
         if: env.exists == 'false'
         uses: docker/setup-buildx-action@v3
-      -
-        name: Prepare Docker build
-        if: env.exists == 'false'
-        id: prepare
-        run: |
-          
-          PLATFORMS="linux/amd64,linux/arm64"
-
-          IS_BETA=false
-          [[ "${{ env.latest_tag }}" == *"rc"* ]] && IS_BETA=true
-          [[ "${{ env.latest_tag }}" == *"beta"* ]] && IS_BETA=true
-          [[ "${{ env.latest_tag }}" == *"alpha"* ]] && IS_BETA=true
-          
-          TAGS=()
-          TAGS=("${{ secrets.DOCKERHUB_REPO }}:${{ env.latest_tag }}")
-          [[ ! $IS_BETA ]] && TAGS+=("${{ secrets.DOCKERHUB_REPO }}:latest")
-          TAGS+=("ghcr.io/${{ github.repository }}:${{ env.latest_tag }}")
-          [[ ! $IS_BETA ]] && TAGS+=("ghcr.io/${{ github.repository }}:latest")
-          
-          echo "tags=${TAGS[@]}" >> $GITHUB_OUTPUT
-          echo "version=${{ env.latest_tag }}" >> $GITHUB_OUTPUT
-          echo "docker_platforms=${PLATFORMS}" >> $GITHUB_OUTPUT
-          echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT      
-      - 
-        name: Clone branch
-        if: env.exists == 'false'
-        run: |
-          git config --global url.https://github.com/.insteadOf git://github.com/
-          git clone --recurse-submodules -j8 https://github.com/lemmynet/lemmy.git --single-branch --branch ${{ steps.prepare.outputs.version }}
-          cp Dockerfile lemmy/
-          cp .dockerignore lemmy/
       -
         name: Login into Docker Hub
         if: env.exists == 'false'
@@ -113,65 +82,85 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - 
+      -
+        name: Clone remote branch
+        if: env.exists == 'false'
+        run: |
+          git config --global url.https://github.com/.insteadOf git://github.com/
+          git clone --recurse-submodules -j8 https://github.com/lemmynet/lemmy.git --single-branch --branch ${{ env.latest_tag }}
+          cp Dockerfile lemmy/
+          cp .dockerignore lemmy/
+      -
         name: Build Docker image
         if: env.exists == 'false'
+        id: build
         run: |
-        
-          TAGS=(${{ steps.prepare.outputs.tags }})
+          #!/bin/bash
+          
+          DIRECTORY="lemmy"
+          VERSION="${{ env.latest_tag }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          PLATFORMS="linux/amd64,linux/arm64"
+          BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          TITLE="$(grep --only-matching --perl-regex "(?<=image.title\=).*" $DIRECTORY/Dockerfile | sed -e 's/ /\xc2\xa0/g')"
+          DESC="$(grep --only-matching --perl-regex "(?<=image.description\=).*" $DIRECTORY/Dockerfile | sed -e 's/ /\xc2\xa0/g')"
 
-          echo "Build date: ${{ steps.prepare.outputs.build_date }}"
-          echo "Docker platform: ${{ steps.prepare.outputs.docker_platforms }}"
-          echo "Tags: ${{ steps.prepare.outputs.tags }}"
+          IS_BETA=false
+          [[ "${VERSION}" == *"rc"* ]] && IS_BETA=true
+          [[ "${VERSION}" == *"beta"* ]] && IS_BETA=true
+          [[ "${VERSION}" == *"alpha"* ]] && IS_BETA=true
+          
+          TAGS=()
+          TAGS=("${{ secrets.DOCKERHUB_REPO }}:${VERSION}")
+          [[ ! $IS_BETA ]] && TAGS+=("${{ secrets.DOCKERHUB_REPO }}:latest")
+          TAGS+=("ghcr.io/${{ github.repository }}:${VERSION}")
+          [[ ! $IS_BETA ]] && TAGS+=("ghcr.io/${{ github.repository }}:latest")
 
-          cd lemmy
-          docker buildx build --platform ${{ steps.prepare.outputs.docker_platforms }} \
+          LABELS=()
+          LABELS=("org.opencontainers.image.licenses=AGPL-3.0")
+          LABELS+=("org.opencontainers.image.title=${TITLE}")
+          LABELS+=("org.opencontainers.image.description=${DESC}")
+          LABELS+=("org.opencontainers.image.version=${VERSION}")
+          LABELS+=("org.opencontainers.image.created=${BUILD_DATE}")
+          LABELS+=("org.opencontainers.image.revision=${GITHUB_RUN_ID}")
+          LABELS+=("org.opencontainers.image.url=https://hub.docker.com/r/${{ secrets.DOCKERHUB_REPO }}")
+          LABELS+=("org.opencontainers.image.source=https://github.com/${{ github.repository }}")
+
+          cd "${DIRECTORY}"
+          docker buildx build --progress=plain \
+  
+          docker buildx build --progress=plain \
+            --platform "${PLATFORMS}" \
             --output "type=image,push=true" \
-            --progress=plain \
+            --build-arg "VERSION_ARG=${VERSION}" \
+            --build-arg "VCS_REF=${GITHUB_SHA::8}" \
             --build-arg "RUST_RELEASE_MODE=release" \
             --build-arg "CARGO_BUILD_FEATURES=default" \
-            --build-arg "BUILD_ARG=${GITHUB_RUN_ID}" \
-            --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \
-            --build-arg "DATE_ARG=${{ steps.prepare.outputs.build_date }}" \
-            --build-arg "VCS_REF=${GITHUB_SHA::8}" \
-            $(printf "%s" "${TAGS[@]/#/ --tag }" ) .
-      - 
-        name: Add custom code
-        if: env.exists == 'false'
-        run: |  
-          cp crates/apub/src/objects/post.rs lemmy/crates/apub/src/objects/post.rs       
-          cp crates/api_common/src/request.rs lemmy/crates/api_common/src/request.rs
-          cp crates/api_crud/src/post/create.rs lemmy/crates/api_crud/src/post/create.rs
-          cp crates/api_crud/src/post/update.rs lemmy/crates/api_crud/src/post/update.rs        
-          cp crates/db_schema/src/impls/post.rs lemmy/crates/db_schema/src/impls/post.rs
-      - 
-        name: Build custom image
-        if: env.exists == 'false'
-        run: |
-        
+            $(printf '%s' "${LABELS[@]/#/ --label }" ) \
+            $(printf '%s' "${LABELS[@]/#/ --annotation }" ) \
+            $(printf '%s' "${TAGS[@]/#/ --tag }" ) .
+
           TAGS=()
           TAGS=("${{ secrets.DOCKERHUB_CUSTOM }}:latest")
           TAGS+=("${{ secrets.DOCKERHUB_CUSTOM }}:${{ env.latest_tag }}")
-          
-          echo "Build date: ${{ steps.prepare.outputs.build_date }}"
-          echo "Docker platform: ${{ steps.prepare.outputs.docker_platforms }}"
-          echo "Tags: ${TAGS}"
 
-          cd lemmy
-          docker buildx build --platform ${{ steps.prepare.outputs.docker_platforms }} \
+          cp crates/apub/src/objects/post.rs lemmy/crates/apub/src/objects/post.rs
+          cp crates/api_common/src/request.rs lemmy/crates/api_common/src/request.rs
+          cp crates/api_crud/src/post/create.rs lemmy/crates/api_crud/src/post/create.rs
+          cp crates/api_crud/src/post/update.rs lemmy/crates/api_crud/src/post/update.rs
+          cp crates/db_schema/src/impls/post.rs lemmy/crates/db_schema/src/impls/post.rs
+          
+          docker buildx build --progress=plain \
+            --platform "${PLATFORMS}" \
             --output "type=image,push=true" \
-            --progress=plain \
+            --build-arg "VERSION_ARG=${VERSION}" \
+            --build-arg "VCS_REF=${GITHUB_SHA::8}" \
             --build-arg "RUST_RELEASE_MODE=release" \
             --build-arg "CARGO_BUILD_FEATURES=default" \
-            --build-arg "BUILD_ARG=${GITHUB_RUN_ID}" \
-            --build-arg "VERSION_ARG=${{ steps.prepare.outputs.version }}" \
-            --build-arg "DATE_ARG=${{ steps.prepare.outputs.build_date }}" \
-            --build-arg "VCS_REF=${GITHUB_SHA::8}" \
-            $(printf "%s" "${TAGS[@]/#/ --tag }" ) .
-      -
-        name: Clear Docker credentials
-        if: env.exists == 'false'
-        run: |
+            $(printf '%s' "${LABELS[@]/#/ --label }" ) \
+            $(printf '%s' "${LABELS[@]/#/ --annotation }" ) \
+            $(printf '%s' "${TAGS[@]/#/ --tag }" ) .
+            
           rm -f ${HOME}/.docker/config.json
       -
         name: Create a release
@@ -180,8 +169,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         with:
-          tag: "v${{ steps.prepare.outputs.version }}"
-          title: "v${{ steps.prepare.outputs.version }}"
+          tag: "v${{ steps.build.outputs.version }}"
+          title: "v${{ steps.build.outputs.version }}"
       -
        name: Send mail
        if: env.exists == 'false'
@@ -190,8 +179,8 @@ jobs:
          to: ${{secrets.MAILTO}}
          from: Github Actions <${{secrets.MAILTO}}>
          connection_url: ${{secrets.MAIL_CONNECTION}}
-         subject: Build of ${{ github.event.repository.name }} v${{ steps.prepare.outputs.version }} completed
+         subject: Build of ${{ github.event.repository.name }} v${{ steps.build.outputs.version }} completed
          body: |
-              The build job of ${{ github.event.repository.name }} v${{ steps.prepare.outputs.version }} was completed successfully! 
+              The build job of ${{ github.event.repository.name }} v${{ steps.build.outputs.version }} was completed successfully! 
               
               See https://github.com/${{ github.repository }}/actions for more information.
