@@ -135,6 +135,7 @@ jobs:
         name: Copy custom code
         if: env.exists == 'false'
         run: |
+          cp src/lib.rs ${{ github.event.repository.name }}/src/lib.rs
           cp crates/apub/src/objects/post.rs ${{ github.event.repository.name }}/crates/apub/src/objects/post.rs
           cp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
           cp crates/api_crud/src/post/create.rs ${{ github.event.repository.name }}/crates/api_crud/src/post/create.rs
