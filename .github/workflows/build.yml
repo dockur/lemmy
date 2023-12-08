@@ -139,7 +139,7 @@ jobs:
           cp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
           cp crates/api_crud/src/post/create.rs ${{ github.event.repository.name }}/crates/api_crud/src/post/create.rs
           cp crates/api_crud/src/post/update.rs ${{ github.event.repository.name }}/crates/api_crud/src/post/update.rs
-          cp crates/db_schema/src/impls/post.rs ${{ github.event.repository.name }}/crates/db_schema/src/impls/post.rs
+          #cp crates/db_schema/src/impls/post.rs ${{ github.event.repository.name }}/crates/db_schema/src/impls/post.rs
       -
         name: Build custom image
         if: env.exists == 'false'
