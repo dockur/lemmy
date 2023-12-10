@@ -17,5 +17,6 @@ readmes
 Dockerfile
 Dockerfile.archive
 docker-compose.yml
-  
+renovate.json
+
 *.md
