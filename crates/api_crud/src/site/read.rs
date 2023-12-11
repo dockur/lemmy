@@ -27,14 +27,10 @@ pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
-  use std::time::Instant;
-
-  let before = Instant::now();
-  
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  println!("catch2: {:.2?}", before.elapsed());
+
   let admins = PersonView::admins(&mut context.pool()).await?;
-  println!("catch3: {:.2?}", before.elapsed());
+
   // Build the local user
   let my_user = if let Some(local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
@@ -43,29 +39,29 @@ pub async fn get_site(
     let follows = CommunityFollowerView::for_person(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-    
+
     let person_id = local_user_view.person.id;
     let community_blocks = CommunityBlockView::for_person(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-    
+
     let instance_blocks = InstanceBlockView::for_person(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-    
+
     let person_id = local_user_view.person.id;
     let person_blocks = PersonBlockView::for_person(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-    
+
     let moderates = CommunityModeratorView::for_person(&mut context.pool(), person_id)
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-    
+
     let discussion_languages = LocalUserLanguage::read(&mut context.pool(), local_user_id)
       .await
       .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-    
+
     Some(MyUserInfo {
       local_user_view,
       follows,
@@ -78,13 +74,13 @@ pub async fn get_site(
   } else {
     None
   };
-  
+
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let custom_emojis =
     CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  
+
   Ok(Json(GetSiteResponse {
     site_view,
     admins,
