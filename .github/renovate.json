@@ -4,7 +4,7 @@
   "forkProcessing": "enabled",
   "cargo": {
     "enabled": false
-  }
+  },
   "yarn": {
     "enabled": false
   }  
