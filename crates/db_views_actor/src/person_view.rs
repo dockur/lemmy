@@ -1,13 +1,28 @@
 use crate::structs::PersonView;
 use diesel::{
-  pg::Pg, result::Error, BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods,
-  PgTextExpressionMethods, QueryDsl,
+  pg::Pg,
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{local_user, person, person_aggregates},
-  utils::{fuzzy_search, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::coalesce,
+    fuzzy_search,
+    limit_and_offset,
+    now,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   SortType,
 };
 use serde::{Deserialize, Serialize};
@@ -46,15 +61,11 @@ fn queries<'a>(
     query
       .inner_join(person_aggregates::table)
       .left_join(local_user::table)
-      .filter(
-        person::deleted
-          .eq(false)
-          .and(local_user::admin.is_not_null()),
-      )
+      .filter(person::deleted.eq(false))
       .select((
         person::all_columns,
         person_aggregates::all_columns,
-        local_user::admin.assume_not_null(),
+        coalesce(local_user::admin.nullable(), false),
       ))
   };
 
@@ -69,7 +80,8 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(local_user::admin.eq(true).and(person::deleted.eq(false)))
+          .filter(local_user::admin.eq(true))
+          .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
       ListMode::Banned => {
