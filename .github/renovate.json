@@ -5,7 +5,7 @@
   "cargo": {
     "enabled": false
   }
-  "npm": {
+  "yarn": {
     "enabled": false
   }  
 }
