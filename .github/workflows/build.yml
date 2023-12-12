@@ -137,7 +137,6 @@ jobs:
         if: env.exists == 'false'
         run: |
           cp crates/db_views_actor/src/person_view.rs lemmy/crates/db_views_actor/src/person_view.rs
-          cp crates/api_crud/src/site/read.rs lemmy/crates/api_crud/src/site/read.rs
           cp crates/db_schema/src/utils.rs ${{ github.event.repository.name }}/crates/db_schema/src/utils.rs
           cp crates/apub/src/objects/post.rs ${{ github.event.repository.name }}/crates/apub/src/objects/post.rs
           cp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
