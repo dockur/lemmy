@@ -5,4 +5,7 @@
   "cargo": {
     "enabled": false
   }
+  "npm": {
+    "enabled": false
+  }  
 }
