@@ -39,7 +39,7 @@ steps:
 
   prettier_check:
     group: format
-    image: tmknom/prettier:3.0.0
+    image: tmknom/prettier:3.1.1
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
