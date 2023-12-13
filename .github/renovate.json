@@ -10,5 +10,8 @@
   },
   "npm": {
     "enabled": false
+  },
+  "docker-compose": {
+    "enabled": false
   }  
 }
