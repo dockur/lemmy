@@ -150,7 +150,7 @@ jobs:
           provenance: false
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKERHUB_CUSTOM }}:latest
+            ${{ secrets.DOCKERHUB_CUSTOM }}:latest,priority=100,enable=${{ env.beta == 'false' }}
             ${{ secrets.DOCKERHUB_CUSTOM }}:${{ steps.meta.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.labels }}
