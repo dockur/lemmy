@@ -12,6 +12,7 @@ use reqwest::{Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use tracing::info;
+use pretty_assertions::assert_eq;
 use url::Url;
 use webpage::HTML;
 
