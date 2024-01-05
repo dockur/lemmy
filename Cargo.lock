@@ -1511,6 +1511,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2523,7 +2529,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2540,6 +2546,7 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "pretty_assertions",
  "serial_test",
  "sitemap-rs",
  "tokio",
@@ -2551,7 +2558,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2568,6 +2575,7 @@ dependencies = [
  "lemmy_utils",
  "once_cell",
  "percent-encoding",
+ "pretty_assertions",
  "regex",
  "reqwest",
  "reqwest-middleware",
@@ -2585,7 +2593,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2607,7 +2615,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2629,6 +2637,7 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "once_cell",
+ "pretty_assertions",
  "reqwest",
  "reqwest-middleware",
  "serde",
@@ -2646,7 +2655,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "async-trait",
@@ -2662,6 +2671,7 @@ dependencies = [
  "futures-util",
  "lemmy_utils",
  "once_cell",
+ "pretty_assertions",
  "regex",
  "rustls 0.21.10",
  "serde",
@@ -2682,7 +2692,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "actix-web",
  "chrono",
@@ -2691,6 +2701,7 @@ dependencies = [
  "diesel_ltree",
  "lemmy_db_schema",
  "lemmy_utils",
+ "pretty_assertions",
  "serde",
  "serde_with",
  "serial_test",
@@ -2701,12 +2712,13 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
  "lemmy_db_schema",
+ "pretty_assertions",
  "serde",
  "serde_with",
  "serial_test",
@@ -2718,7 +2730,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2730,7 +2742,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2753,7 +2765,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2777,7 +2789,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2801,6 +2813,7 @@ dependencies = [
  "opentelemetry 0.19.0",
  "opentelemetry-otlp 0.12.0",
  "pict-rs",
+ "pretty_assertions",
  "prometheus",
  "reqwest",
  "reqwest-middleware",
@@ -2819,7 +2832,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.1-rc.2"
+version = "0.19.2-rc.2"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2836,6 +2849,7 @@ dependencies = [
  "once_cell",
  "openssl",
  "percent-encoding",
+ "pretty_assertions",
  "regex",
  "reqwest",
  "reqwest-middleware",
@@ -3941,6 +3955,16 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "pretty_assertions"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af7cee1a6c8a5b9208b3cb1061f10c0cb689087b3d8ce85fb9d2dd7a29b6ba66"
+dependencies = [
+ "diff",
+ "yansi",
+]
 
 [[package]]
 name = "proc-macro2"
@@ -6442,6 +6466,12 @@ checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
 ]
+
+[[package]]
+name = "yansi"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "zerocopy"
