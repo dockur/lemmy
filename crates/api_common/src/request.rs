@@ -12,7 +12,6 @@ use reqwest::{Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use tracing::info;
-use pretty_assertions::assert_eq;
 use url::Url;
 use webpage::HTML;
 
@@ -382,6 +381,7 @@ mod tests {
 
   use crate::request::{client_builder, fetch_site_metadata, html_to_site_metadata, SiteMetadata};
   use lemmy_utils::settings::SETTINGS;
+  use pretty_assertions::assert_eq;
   use url::Url;
 
   // These helped with testing
