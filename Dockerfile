@@ -61,6 +61,7 @@ FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 ARG DEBCONF_NOWARNINGS="yes"
 ARG DEBIAN_FRONTEND noninteractive
+ARG DEBCONF_NONINTERACTIVE_SEEN true
 
 RUN apt-get update \
  && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
