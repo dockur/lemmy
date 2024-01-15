@@ -22,7 +22,7 @@ version: "3"
 services:
   lemmy:
     container_name: lemmy
-    image: dockurr/lemmy:latest
+    image: dockurr/lemmy
     ports:
       - 8536:8536
     environment:
