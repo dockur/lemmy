@@ -33,6 +33,9 @@ services:
     stop_grace_period: 1m
 ```
 
+## Stars
+[![Stars](https://starchart.cc/dockur/lemmy.svg?variant=adaptive)](https://starchart.cc/dockur/lemmy)
+
 [build_url]: https://github.com/dockur/lemmy/
 [hub_url]: https://hub.docker.com/r/dockurr/lemmy/
 [tag_url]: https://hub.docker.com/r/dockurr/lemmy/tags
