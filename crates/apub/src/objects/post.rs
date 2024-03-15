@@ -5,7 +5,7 @@ use crate::{
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Page, PageType},
+      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
       LanguageTag,
     },
     ImageObject,
@@ -26,7 +26,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_link_metadata_opt,
   utils::{
-    is_mod_or_admin,
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
@@ -43,6 +42,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
@@ -124,6 +124,11 @@ impl Object for ApubPost {
       })
       .into_iter()
       .collect();
+    let hashtag = Hashtag {
+      href: self.ap_id.clone().into(),
+      name: format!("#{}", &community.name),
+      kind: HashtagType::Hashtag,
+    };
 
     let page = Page {
       kind: PageType::Page,
@@ -144,6 +149,7 @@ impl Object for ApubPost {
       updated: self.updated,
       audience: Some(community.actor_id.into()),
       in_reply_to: None,
+      tag: vec![hashtag],
     };
     Ok(page)
   }
@@ -179,7 +185,8 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(&mut context.pool(), &creator, community.id).await?;
+      CommunityModeratorView::is_community_moderator(&mut context.pool(), community.id, creator.id)
+        .await?;
     }
     let mut name = page
       .name
