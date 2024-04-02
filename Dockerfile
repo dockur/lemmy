@@ -13,6 +13,7 @@ FROM --platform=linux/amd64 ${AMD_BUILDER_IMAGE} AS build-amd64
 
 ARG RUST_RELEASE_MODE
 ARG CARGO_BUILD_FEATURES
+ARG RUSTFLAGS
 
 WORKDIR /home/lemmy/src
 COPY . ./
@@ -36,6 +37,7 @@ USER 10001:10001
 
 ARG RUST_RELEASE_MODE
 ARG CARGO_BUILD_FEATURES
+ARG RUSTFLAGS
 
 WORKDIR /home/lemmy/src
 COPY --chown=lemmy:lemmy . ./
@@ -64,7 +66,7 @@ ARG DEBIAN_FRONTEND noninteractive
 ARG DEBCONF_NONINTERACTIVE_SEEN true
 
 RUN apt-get update \
- && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
+ && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates curl \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -78,7 +80,7 @@ ARG DEBIAN_FRONTEND noninteractive
 ARG DEBCONF_NONINTERACTIVE_SEEN true
 
 RUN apt-get update \
- && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates \
+ && apt-get -y install --no-install-recommends tini postgresql-client libssl3 ca-certificates curl \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
