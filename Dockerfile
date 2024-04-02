@@ -20,7 +20,6 @@ COPY . ./
  
 # Build
 RUN --mount=type=cache,target=./target set -ex; \
-    echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
     echo "Building Lemmy $(git describe --tag), Cargo Target: $(rustc -vV | sed -n 's|host: ||p'), Mode: $RUST_RELEASE_MODE"; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
@@ -48,7 +47,6 @@ ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
 
 # Build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
-    echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
     echo "Building Lemmy $(git describe --tag), Cargo Target: $(rustc -vV | sed -n 's|host: ||p'), Mode: $RUST_RELEASE_MODE"; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
