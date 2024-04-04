@@ -1,4 +1,4 @@
-ARG RUST_VERSION=1.76
+ARG RUST_VERSION=1.77
 ARG RUST_RELEASE_MODE="release"
 ARG CARGO_BUILD_FEATURES=default
 
@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=./target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
     else \
-        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
+        cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
     fi; \
     mv "./target/${RUST_RELEASE_MODE}/lemmy_server" ./../lemmy_server;
@@ -51,7 +51,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
     else \
-        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
+        cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
     fi; \
     mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" ./../lemmy_server;
