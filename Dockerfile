@@ -92,7 +92,7 @@ ARG GID=1000
 ARG UNAME=lemmy
 
 RUN groupadd -g ${GID} -o ${UNAME} && \
-    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
+    useradd -m -l -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
 USER $UNAME
 
 EXPOSE 8536
