@@ -32,7 +32,7 @@ use urlencoding::encode;
 use webpage::HTML;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
+  let user_agent = "Googlebot/2.1 (+http://www.google.com/bot.html)";
 
   Client::builder()
     .user_agent(user_agent.clone())
