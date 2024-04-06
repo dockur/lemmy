@@ -15,7 +15,7 @@ Multi-platform docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a lin
 
 ## How to use
 
-Via `docker-compose`
+Via Docker Compose:
 
 ```yaml
 version: "3"
