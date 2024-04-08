@@ -32,7 +32,11 @@ use urlencoding::encode;
 use webpage::HTML;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = "Googlebot/2.1 (+http://www.google.com/bot.html)";
+  let user_agent = format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  );
 
   Client::builder()
     .user_agent(user_agent.clone())
@@ -48,7 +52,19 @@ pub async fn fetch_link_metadata(
   context: &LemmyContext,
 ) -> Result<LinkMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
+
+  let default_agent = format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  );
+
+  if !url.contains("/tweakers.net/") {
+    context.client().user_agent("Googlebot/2.1 (+http://www.google.com/bot.html)");
+  }
+
   let response = context.client().get(url.as_str()).send().await?;
+  context.client().user_agent(default_agent.clone());
 
   let content_type: Option<Mime> = response
     .headers()
