@@ -30,6 +30,7 @@ use tracing::info;
 use url::Url;
 use urlencoding::encode;
 use webpage::HTML;
+use reqwest::header;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
@@ -49,10 +50,11 @@ pub async fn fetch_link_metadata(
 ) -> Result<LinkMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
 
+  let response;
   if url.as_str().contains("/tweakers.net/") {
-    let response = context.client().get(url.as_str()).send().await?;
+    response = context.client().get(url.as_str()).send().await?;
   } else {
-    let response = context.client().get(url.as_str()).header(header::USER_AGENT, "Googlebot/2.1 (+http://www.google.com/bot.html)").send().await?;
+    response = context.client().get(url.as_str()).header(header::USER_AGENT, "Googlebot/2.1 (+http://www.google.com/bot.html)").send().await?;
   }
 
   let content_type: Option<Mime> = response
