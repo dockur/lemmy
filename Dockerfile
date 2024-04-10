@@ -3,7 +3,7 @@ ARG RUST_RELEASE_MODE="release"
 ARG CARGO_BUILD_FEATURES=default
 
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
-ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.2.0"
+ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.3.0"
 
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
 ARG ARM_RUNNER_IMAGE=debian:bookworm-slim
