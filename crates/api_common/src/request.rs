@@ -51,10 +51,10 @@ pub async fn fetch_link_metadata(
   info!("Fetching site metadata for url: {}", url);
 
   let response;
-  if url.as_str().contains("/tweakers.net/") {
-    response = context.client().get(url.as_str()).send().await?;
-  } else {
+  if url.as_str().contains("//ad.nl/") || url.as_str().contains("//nu.nl/") || url.as_str().contains("//volkskrant.nl/") {
     response = context.client().get(url.as_str()).header(header::USER_AGENT, "Googlebot/2.1 (+http://www.google.com/bot.html)").send().await?;
+  } else {
+    response = context.client().get(url.as_str()).send().await?;
   }
 
   let content_type: Option<Mime> = response
