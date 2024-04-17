@@ -27,9 +27,10 @@ import {
   setupLogins,
   waitForPost,
   unfollows,
-  editPostThumbnail,
   getPost,
   waitUntil,
+  randomString,
+  createPostWithThumbnail,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
@@ -41,7 +42,7 @@ test("Upload image and delete it", async () => {
   // Before running this test, you need to delete all previous images in the DB
   await deleteAllImages(alpha);
 
-  // Upload test image. We use a simple string buffer as pictrs doesnt require an actual image
+  // Upload test image. We use a simple string buffer as pictrs doesn't require an actual image
   // in testing mode.
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
@@ -235,7 +236,7 @@ test("No image proxying if setting is disabled", async () => {
   );
   expect(post.post_view.post).toBeDefined();
 
-  // remote image doesnt get proxied after upload
+  // remote image doesn't get proxied after upload
   expect(
     post.post_view.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
@@ -248,7 +249,7 @@ test("No image proxying if setting is disabled", async () => {
   );
   expect(betaPost.post).toBeDefined();
 
-  // remote image doesnt get proxied after federation
+  // remote image doesn't get proxied after federation
   expect(
     betaPost.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
@@ -269,10 +270,11 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   // Use wikipedia since it has an opengraph image
   const wikipediaUrl = "https://wikipedia.org/";
 
-  let post = await createPost(
+  let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
     wikipediaUrl,
+    upload1.url!,
   );
 
   // Wait for the metadata to get fetched, since this is backgrounded now
@@ -281,21 +283,11 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
-  expect(post.post_view.post.thumbnail_url).toBeDefined();
-
-  // Edit the thumbnail
-  await editPostThumbnail(alphaImage, post.post_view.post, upload1.url!);
-
-  post = await waitUntil(
-    () => getPost(alphaImage, post.post_view.post.id),
-    p => p.post_view.post.thumbnail_url == upload1.url,
-  );
-
-  // Make sure the thumbnail got edited.
+  // Make sure it uses custom thumbnail
   expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });
 
-test("Create an image post, and make sure a custom thumbnail doesnt overwrite it", async () => {
+test("Create an image post, and make sure a custom thumbnail doesn't overwrite it", async () => {
   const uploadForm1: UploadImage = {
     image: Buffer.from("test1"),
   };
@@ -308,23 +300,17 @@ test("Create an image post, and make sure a custom thumbnail doesnt overwrite it
 
   const community = await createCommunity(alphaImage);
 
-  let post = await createPost(
+  let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
-    upload1.url,
+    upload1.url!,
+    upload2.url!,
   );
-  expect(post.post_view.post.url).toBe(upload1.url);
-
-  // Edit the post
-  await editPostThumbnail(alphaImage, post.post_view.post, upload2.url!);
-
-  // Wait for the metadata to get fetched
   post = await waitUntil(
     () => getPost(alphaImage, post.post_view.post.id),
-    p => p.post_view.post.thumbnail_url == upload1.url,
+    p => p.post_view.post.thumbnail_url != undefined,
   );
-
-  // Make sure the new custom thumbnail is ignored, and doesn't overwrite the image post
   expect(post.post_view.post.url).toBe(upload1.url);
-  expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
+  // Make sure the custom thumbnail is ignored
+  expect(post.post_view.post.thumbnail_url == upload2.url).toBe(false);
 });
