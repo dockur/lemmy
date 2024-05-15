@@ -18,7 +18,6 @@ Multi-platform docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a lin
 Via Docker Compose:
 
 ```yaml
-version: "3"
 services:
   lemmy:
     container_name: lemmy
