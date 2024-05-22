@@ -27,8 +27,14 @@ services:
     environment:
       - RUST_LOG="warn"
     volumes:
-      - /path/to/lemmy.hjson:/config/config.hjson:Z
+      - ./lemmy.hjson:/config/config.hjson
     stop_grace_period: 1m
+```
+
+Via Docker CLI:
+
+```bash
+docker run -it --rm -p 8536:8536 -v " ./lemmy.hjson:/config/config.hjson" --stop-timeout 60 dockurr/lemmy
 ```
 
 ## Stars
