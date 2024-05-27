@@ -243,7 +243,7 @@ impl Object for ApubPost {
       .updated(page.updated.map(Into::into))
       .deleted(Some(false))
       .nsfw(page.sensitive)
-      .thumbnail_url(thumbnail_url)
+      .thumbnail_url(thumbnail_url.clone().into())
       .ap_id(Some(page.id.clone().into()))
       .local(Some(false))
       .language_id(language_id)
