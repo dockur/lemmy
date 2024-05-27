@@ -230,7 +230,7 @@ impl Object for ApubPost {
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
-    let mut thumbnail_url = page.image.map(|i| i.url);
+    let thumbnail_url = page.image.map(|i| i.url);
 
     let form = PostInsertForm::builder()
       .name(name)
@@ -251,8 +251,8 @@ impl Object for ApubPost {
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    let post_ = post.clone();
-    let context_ = context.reset_request_count();
+    //let post_ = post.clone();
+    //let context_ = context.reset_request_count();
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
