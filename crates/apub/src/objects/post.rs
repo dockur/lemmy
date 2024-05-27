@@ -230,6 +230,7 @@ impl Object for ApubPost {
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
+    let mut thumbnail_url = page.image.map(|i| i.url);
 
     let form = PostInsertForm::builder()
       .name(name)
@@ -242,6 +243,7 @@ impl Object for ApubPost {
       .updated(page.updated.map(Into::into))
       .deleted(Some(false))
       .nsfw(page.sensitive)
+      .thumbnail_url(thumbnail_url)
       .ap_id(Some(page.id.clone().into()))
       .local(Some(false))
       .language_id(language_id)
