@@ -13,7 +13,7 @@
 
 Multi-platform docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a link aggregator and forum for the fediverse.
 
-## How to use
+## Usage  🐳
 
 Via Docker Compose:
 
@@ -37,7 +37,7 @@ Via Docker CLI:
 docker run -it --rm -p 8536:8536 -v " ./lemmy.hjson:/config/config.hjson" --stop-timeout 60 dockurr/lemmy
 ```
 
-## Stars
+## Stars 🌟
 [![Stars](https://starchart.cc/dockur/lemmy.svg?variant=adaptive)](https://starchart.cc/dockur/lemmy)
 
 [build_url]: https://github.com/dockur/lemmy/
