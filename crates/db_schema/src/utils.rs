@@ -32,7 +32,6 @@ use lemmy_utils::{
   settings::SETTINGS,
   utils::validation::clean_url_params,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
   client::danger::{
@@ -49,7 +48,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
   time::Duration,
 };
 use tracing::error;
@@ -58,7 +57,7 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
-pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(365);
+pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
@@ -478,7 +477,7 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
-static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
 });
