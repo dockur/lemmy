@@ -246,6 +246,7 @@ impl Object for ApubPost {
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
+    let thumbnail_url = page.image.map(|i| i.url);
 
     let form = PostInsertForm::builder()
       .name(name)
@@ -258,6 +259,7 @@ impl Object for ApubPost {
       .updated(page.updated.map(Into::into))
       .deleted(Some(false))
       .nsfw(page.sensitive)
+      .thumbnail_url(thumbnail_url.map(Into::into))
       .ap_id(Some(page.id.clone().into()))
       .local(Some(false))
       .language_id(language_id)
@@ -265,14 +267,14 @@ impl Object for ApubPost {
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    let post_ = post.clone();
-    let context_ = context.reset_request_count();
+    //let post_ = post.clone();
+    //let context_ = context.reset_request_count();
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
-    spawn_try_task(async move {
-      generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
-    });
+    // spawn_try_task(async move {
+    //  generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
+    // });
 
     Ok(post.into())
   }
