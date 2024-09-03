@@ -50,5 +50,4 @@ docker run -it --rm -p 8536:8536 -v " ./lemmy.hjson:/config/config.hjson" --stop
 [Size]: https://img.shields.io/docker/image-size/dockurr/lemmy/latest?color=066da5&label=size
 [Pulls]: https://img.shields.io/docker/pulls/dockurr/lemmy.svg?style=flat&label=pulls&logo=docker
 [Version]: https://img.shields.io/docker/v/dockurr/lemmy/latest?arch=amd64&sort=semver&color=066da5
-[Package]: 
-https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fipitio.github.io%2Fbackage%2Fdockur%2Flemmy%2Flemmy.json&query=%24.downloads&logo=github&style=flat&color=066da5&label=pulls
+[Package]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fipitio.github.io%2Fbackage%2Fdockur%2Flemmy%2Flemmy.json&query=%24.downloads&logo=github&style=flat&color=066da5&label=pulls
