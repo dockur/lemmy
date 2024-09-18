@@ -30,7 +30,7 @@ use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
-  utils::validation::clean_url,
+  utils::validation::clean_url_params,
 };
 use regex::Regex;
 use rustls::{
@@ -57,7 +57,7 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
-pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(365);
+pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
@@ -305,7 +305,7 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(Some(clean_url(&u).into())))
+      .map(|u| Some(Some(clean_url_params(&u).into())))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
@@ -316,7 +316,7 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
 pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
   match opt {
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(clean_url(&u).into()))
+      .map(|u| Some(clean_url_params(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
