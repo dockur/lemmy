@@ -36,6 +36,7 @@ use tracing::info;
 use url::Url;
 use urlencoding::encode;
 use webpage::HTML;
+use reqwest::header;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
@@ -53,14 +54,27 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
   // We only fetch the first 64kB of data in order to not waste bandwidth especially for large
   // binary files
   let bytes_to_fetch = 64 * 1024;
-  let response = context
-    .client()
-    .get(url.as_str())
-    // we only need the first chunk of data. Note that we do not check for Accept-Range so the
-    // server may ignore this and still respond with the full response
-    .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
-    .send()
-    .await?;
+  let response;
+  if url.as_str().contains("//ad.nl/") || url.as_str().contains("//nu.nl/") || url.as_str().contains("//volkskrant.nl/") {
+    response = context
+      .client()
+      .get(url.as_str())
+      .header(header::USER_AGENT, "Googlebot/2.1 (+http://www.google.com/bot.html)")
+      // we only need the first chunk of data. Note that we do not check for Accept-Range so the
+      // server may ignore this and still respond with the full response
+      .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
+      .send()
+      .await?;
+  } else {
+    response = context
+      .client()
+      .get(url.as_str())
+      // we only need the first chunk of data. Note that we do not check for Accept-Range so the
+      // server may ignore this and still respond with the full response
+      .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
+      .send()
+      .await?;
+  }
 
   let content_type: Option<Mime> = response
     .headers()
