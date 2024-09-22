@@ -256,6 +256,7 @@ impl Object for ApubPost {
     form.updated = page.updated.map(Into::into);
     form.deleted = Some(false);
     form.nsfw = page.sensitive;
+    form.thumbnail_url = thumbnail_url.map(Into::into);
     form.ap_id = Some(page.id.clone().into());
     form.local = Some(false);
     form.language_id = language_id;
