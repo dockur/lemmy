@@ -255,6 +255,7 @@ impl Object for ApubPost {
       published: page.published.map(Into::into),
       updated: page.updated.map(Into::into),
       deleted: Some(false),
+      thumbnail_url: thumbnail_url.map(Into::into),
       nsfw: page.sensitive,
       ap_id: Some(page.id.clone().into()),
       local: Some(false),
