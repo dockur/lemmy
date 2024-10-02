@@ -125,7 +125,7 @@ jobs:
           cp .dockerignore ${{ github.event.repository.name }}/
       -
         name: Build Docker image
-        if: env.exists == 'false'
+        if: env.exists == 'xfalse'
         uses: docker/build-push-action@v6
         with:
           context: ./${{ github.event.repository.name }}
@@ -159,9 +159,10 @@ jobs:
         name: Copy custom code
         if: env.exists == 'false'
         run: |
-          cp crates/db_schema/src/utils.rs ${{ github.event.repository.name }}/crates/db_schema/src/utils.rs
-          cp crates/apub/src/objects/post.rs ${{ github.event.repository.name }}/crates/apub/src/objects/post.rs
-          cp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
+          cmp crates/db_schema/src/utils.rs ${{ github.event.repository.name }}/crates/db_schema/src/utils.rs
+          cmp crates/apub/src/objects/post.rs ${{ github.event.repository.name }}/crates/apub/src/objects/post.rs
+          cmp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
+          exit 33
       -
         name: Build custom image
         if: env.exists == 'false'
