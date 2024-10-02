@@ -123,10 +123,9 @@ jobs:
           git config --global url.https://github.com/.insteadOf git://github.com/
           git clone --recurse-submodules -j8 https://github.com/lemmynet/${{ github.event.repository.name }}.git --single-branch --branch ${{ env.latest_tag }}
           cp Dockerfile ${{ github.event.repository.name }}/
-          cp .dockerignore ${{ github.event.repository.name }}/
       -
         name: Build Docker image
-        if: env.exists == 'xfalse'
+        if: env.exists == 'false'
         uses: docker/build-push-action@v6
         with:
           context: ./${{ github.event.repository.name }}
@@ -160,10 +159,9 @@ jobs:
         name: Copy custom code
         if: env.exists == 'false'
         run: |
-          diff crates/db_schema/src/utils.rs ${{ github.event.repository.name }}/crates/db_schema/src/utils.rs
-          cmp crates/apub/src/objects/post.rs ${{ github.event.repository.name }}/crates/apub/src/objects/post.rs
-          cmp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
-          exit 33
+          cp crates/db_schema/src/utils.rs ${{ github.event.repository.name }}/crates/db_schema/src/utils.rs
+          cp crates/apub/src/objects/post.rs ${{ github.event.repository.name }}/crates/apub/src/objects/post.rs
+          cp crates/api_common/src/request.rs ${{ github.event.repository.name }}/crates/api_common/src/request.rs
       -
         name: Build custom image
         if: env.exists == 'false'
