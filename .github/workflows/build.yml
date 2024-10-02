@@ -78,10 +78,11 @@ jobs:
         if: env.exists == 'false'
         run: |
           #!/bin/bash
-          git remote add upstream https://github.com/LemmyNet/lemmy.git
+          git remote add upstream https://github.com/lemmynet/${{ github.event.repository.name }}.git
           git fetch upstream 2>/dev/null
           ahead=$(git rev-list --count upstream/${{ env.branch }}..${{ env.branch }})
           behind=$(git rev-list --count ${{ env.branch }}..upstream/${{ env.branch }})
+          git remote remove upstream
           [[ "$behind" == "0" ]] && exit 0
           echo "Behind upstream: $behind commits"
           exit 33
@@ -199,6 +200,7 @@ jobs:
           tag: "v${{ steps.meta.outputs.version }}"
           title: "v${{ steps.meta.outputs.version }}"
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          commit: '${{ env.branch }}'
       -
         name: Send mail
         if: env.exists == 'false'
