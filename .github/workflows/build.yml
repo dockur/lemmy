@@ -63,8 +63,9 @@ jobs:
 
           [[ "${{ env.latest_tag }}" == *"rc"* ]] && beta="true"
           [[ "${{ env.latest_tag }}" == *"beta"* ]] && beta="true"
-          [[ "${{ env.latest_tag }}" == *"test"* ]] && beta="true" && val="true"
-          [[ "${{ env.latest_tag }}" == *"alpha"* ]] && beta="true" && val="true"
+          [[ "${{ env.latest_tag }}" == *"test"* ]] && val="true"
+          [[ "${{ env.latest_tag }}" == *"alpha"* ]] && val="true"
+          [[ "${{ env.latest_tag }}" == *"no-triggers"* ]] && val="true"
 
           echo "beta=${beta}" >> $GITHUB_ENV
           echo "exists=${val}" >> $GITHUB_ENV
