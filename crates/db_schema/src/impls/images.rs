@@ -1,7 +1,7 @@
 use crate::{
   newtypes::DbUrl,
-  schema::{local_image, remote_image},
-  source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
+  schema::{image_details, local_image, remote_image},
+  source::images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm, RemoteImage},
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -17,11 +17,26 @@ use diesel_async::RunQueryDsl;
 use url::Url;
 
 impl LocalImage {
-  pub async fn create(pool: &mut DbPool<'_>, form: &LocalImageForm) -> Result<Self, Error> {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &LocalImageForm,
+    image_details_form: &ImageDetailsForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(local_image::table)
-      .values(form)
-      .get_result::<Self>(conn)
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          let local_insert = insert_into(local_image::table)
+            .values(form)
+            .get_result::<Self>(conn)
+            .await;
+
+          ImageDetails::create(&mut conn.into(), image_details_form).await?;
+
+          local_insert
+        }) as _
+      })
       .await
   }
 
@@ -43,7 +58,7 @@ impl RemoteImage {
     let conn = &mut get_conn(pool).await?;
     let forms = links
       .into_iter()
-      .map(|url| RemoteImageForm { link: url.into() })
+      .map(|url| remote_image::dsl::link.eq::<DbUrl>(url.into()))
       .collect::<Vec<_>>();
     insert_into(remote_image::table)
       .values(forms)
@@ -65,5 +80,17 @@ impl RemoteImage {
     } else {
       Err(NotFound)
     }
+  }
+}
+
+impl ImageDetails {
+  pub async fn create(pool: &mut DbPool<'_>, form: &ImageDetailsForm) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    insert_into(image_details::table)
+      .values(form)
+      .on_conflict_do_nothing()
+      .execute(conn)
+      .await
   }
 }
