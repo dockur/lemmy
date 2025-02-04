@@ -1281,15 +1281,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "diesel-bind-if-some"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ed8ce9db476124d2eaf4c9db45dc6581b8e8c4c4d47d5e0f39de1fb55dfb2a7"
-dependencies = [
- "diesel",
-]
-
-[[package]]
 name = "diesel-derive-enum"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2551,7 +2542,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2578,7 +2569,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2616,7 +2607,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2639,7 +2630,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2675,7 +2666,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2690,7 +2681,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2701,7 +2692,6 @@ dependencies = [
  "derive-new",
  "diesel",
  "diesel-async",
- "diesel-bind-if-some",
  "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",
@@ -2730,7 +2720,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "actix-web",
  "chrono",
@@ -2746,7 +2736,6 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serial_test",
- "strum",
  "test-context",
  "tokio",
  "tracing",
@@ -2756,7 +2745,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2787,7 +2776,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2819,7 +2808,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2832,6 +2821,7 @@ dependencies = [
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
+ "mimalloc",
  "reqwest-middleware",
  "reqwest-tracing",
  "rustls 0.23.21",
@@ -2844,7 +2834,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.6-beta.7"
+version = "0.20.0-alpha.0"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -2934,6 +2924,16 @@ name = "libm"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
+
+[[package]]
+name = "libmimalloc-sys"
+version = "0.1.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23aa6811d3bd4deb8a84dde645f943476d13b248d818edcf8ce0b2f37f036b44"
+dependencies = [
+ "cc",
+ "libc",
+]
 
 [[package]]
 name = "linked-hash-map"
@@ -3223,6 +3223,15 @@ dependencies = [
  "migrations_internals",
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68914350ae34959d83f732418d51e2427a794055d0b9529f48259ac07af65633"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]
