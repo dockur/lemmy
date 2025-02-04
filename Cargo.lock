@@ -2846,7 +2846,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2876,7 +2876,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2915,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2937,7 +2937,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2974,7 +2974,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2989,7 +2989,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3028,7 +3028,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "actix-web",
  "chrono",
@@ -3050,7 +3050,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "chrono",
  "diesel",
@@ -3070,7 +3070,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3082,7 +3082,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3113,7 +3113,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3136,7 +3136,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -3157,6 +3157,7 @@ dependencies = [
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
+ "mimalloc",
  "opentelemetry 0.19.0",
  "opentelemetry-otlp 0.12.0",
  "pict-rs",
@@ -3180,7 +3181,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.8"
+version = "0.19.9-beta.0"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -3265,6 +3266,16 @@ name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
+
+[[package]]
+name = "libmimalloc-sys"
+version = "0.1.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23aa6811d3bd4deb8a84dde645f943476d13b248d818edcf8ce0b2f37f036b44"
+dependencies = [
+ "cc",
+ "libc",
+]
 
 [[package]]
 name = "line-wrap"
@@ -3532,6 +3543,15 @@ dependencies = [
  "migrations_internals",
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68914350ae34959d83f732418d51e2427a794055d0b9529f48259ac07af65633"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]

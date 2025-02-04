@@ -50,6 +50,7 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   VERSION,
 };
+use mimalloc::MiMalloc;
 use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
@@ -63,6 +64,9 @@ use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 use url::Url;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
 /// compatibility with other ActivityPub software that might allocate more time for synchronous
