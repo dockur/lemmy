@@ -29,6 +29,7 @@ services:
       - RUST_LOG="warn"
     volumes:
       - ./lemmy.hjson:/config/config.hjson
+    restart: always
     stop_grace_period: 1m
 ```
 
