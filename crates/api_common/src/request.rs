@@ -91,7 +91,7 @@ pub async fn fetch_link_metadata(
   // binary files
   let bytes_to_fetch = 64 * 1024;
   let response;
-  if url.as_str().contains("//ad.nl/") || url.as_str().contains("//nu.nl/") || url.as_str().contains("//volkskrant.nl/") {
+  if url.as_str().contains("//ad.nl/") || url.as_str().contains("//www.ad.nl/") || url.as_str().contains("//nu.nl/") || url.as_str().contains("//www.nu.nl/") || url.as_str().contains("//volkskrant.nl/") || url.as_str().contains("//www.volkskrant.nl/") {
     response = context
       .client()
       .get(url.as_str())
