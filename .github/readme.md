@@ -21,8 +21,8 @@ Via Docker Compose:
 ```yaml
 services:
   lemmy:
-    container_name: lemmy
     image: dockurr/lemmy
+    container_name: lemmy
     ports:
       - 8536:8536
     environment:
