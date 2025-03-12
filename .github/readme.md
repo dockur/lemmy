@@ -23,10 +23,10 @@ services:
   lemmy:
     image: dockurr/lemmy
     container_name: lemmy
+    environment:
+      RUST_LOG: "warn"
     ports:
       - 8536:8536
-    environment:
-      - RUST_LOG="warn"
     volumes:
       - ./lemmy.hjson:/config/config.hjson
     restart: always
