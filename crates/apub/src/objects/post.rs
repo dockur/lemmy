@@ -27,6 +27,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
   request::generate_post_link_metadata,
   utils::{
     check_nsfw_allowed,
@@ -39,13 +40,12 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::CommunityModeratorView;
+use lemmy_db_views::structs::{CommunityModeratorView, SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -184,7 +184,10 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let local_site = SiteView::read_local(&mut context.pool())
+      .await
+      .ok()
+      .map(|s| s.local_site);
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -271,7 +274,7 @@ impl Object for ApubPost {
         .await?,
     );
 
-    let form = PostInsertForm {
+    let mut form = PostInsertForm {
       url: url.map(Into::into),
       body,
       alt_text,
@@ -284,9 +287,11 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
+    form = plugin_hook_before("before_receive_federated_post", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    plugin_hook_after("after_receive_federated_post", &post)?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
