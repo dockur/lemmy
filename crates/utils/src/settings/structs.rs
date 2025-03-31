@@ -54,6 +54,8 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "lemmy.tld")]
   cors_origin: Option<String>,
+  /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
+  pub json_logging: bool,
 }
 
 impl Settings {
@@ -135,6 +137,9 @@ pub struct DatabaseConfig {
   pub(crate) connection: DatabaseConnection,
 
   /// Maximum number of active sql connections
+  ///
+  /// A high value here can result in errors "could not resize shared memory segment". In this case
+  /// it is necessary to increase shared memory size in Docker: https://stackoverflow.com/a/56754077
   #[default(30)]
   pub pool_size: usize,
 }
