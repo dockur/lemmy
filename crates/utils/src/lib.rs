@@ -22,7 +22,7 @@ pub type ConnectionId = usize;
 /// This slows down development a lot, so we only use git_version for release builds.
 #[cfg(not(debug_assertions))]
 pub const VERSION: &str = git_version::git_version!(
-  args = ["--tags", "--dirty=-modified"],
+  args = ["--tags"],
   fallback = env!("CARGO_PKG_VERSION")
 );
 #[cfg(debug_assertions)]
