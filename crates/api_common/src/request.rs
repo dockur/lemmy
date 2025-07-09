@@ -40,7 +40,6 @@ use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
 use webpage::HTML;
-use reqwest::header;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
@@ -95,27 +94,14 @@ pub async fn fetch_link_metadata(
   // javascript code before the opengraph tags. Mastodon also uses a 1 MB limit:
   // https://github.com/mastodon/mastodon/blob/295ad6f19a016b3f16e1201ffcbb1b3ad6b455a2/app/lib/request.rb#L213
   let bytes_to_fetch = 1024 * 1024;
-  let response;
-  if url.as_str().contains("//ad.nl/") || url.as_str().contains("//www.ad.nl/") || url.as_str().contains("//nos.nl/") || url.as_str().contains("//www.nos.nl/") || url.as_str().contains("//nu.nl/") || url.as_str().contains("//www.nu.nl/") || url.as_str().contains("//volkskrant.nl/") || url.as_str().contains("//www.volkskrant.nl/") {
-    response = context
-      .client()
-      .get(url.as_str())
-      .header(header::USER_AGENT, "Googlebot/2.1 (+http://www.google.com/bot.html)")
-      // we only need the first chunk of data. Note that we do not check for Accept-Range so the
-      // server may ignore this and still respond with the full response
-      .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
-      .send()
-      .await?;
-  } else {
-    response = context
-      .client()
-      .get(url.as_str())
-      // we only need the first chunk of data. Note that we do not check for Accept-Range so the
-      // server may ignore this and still respond with the full response
-      .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
-      .send()
-      .await?;
-  }
+  let response = context
+    .client()
+    .get(url.as_str())
+    // we only need the first chunk of data. Note that we do not check for Accept-Range so the
+    // server may ignore this and still respond with the full response
+    .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
+    .send()
+    .await?;
 
   // Manually follow one redirect, using internal IP check. Further redirects are ignored.
   let location = response
