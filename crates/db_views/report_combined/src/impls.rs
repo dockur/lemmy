@@ -20,6 +20,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  ReportType,
   aliases::{self, creator_community_actions},
   newtypes::{
     CommentReportId,
@@ -33,11 +34,12 @@ use lemmy_db_schema::{
     PrivateMessageReportId,
   },
   source::{
-    combined::report::{report_combined_keys as key, ReportCombined},
+    combined::report::{ReportCombined, report_combined_keys as key},
     person::Person,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -46,9 +48,7 @@ use lemmy_db_schema::{
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
     },
-    DbPool,
   },
-  ReportType,
 };
 use lemmy_db_schema_file::schema::{
   comment,
@@ -72,8 +72,11 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl ReportCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
-    let report_creator = person::id;
-    let item_creator = aliases::person1.field(person::id);
+    // The item creator needs to be person::id, otherwise all the creator actions like
+    // creator_banned will be wrong.
+    let item_creator = person::id;
+    let report_creator = aliases::person1.field(person::id);
+
     let resolver = aliases::person2.field(person::id).nullable();
 
     let comment_join = comment::table.on(comment_report::comment_id.eq(comment::id));
@@ -92,7 +95,7 @@ impl ReportCombinedViewInternal {
         .and(community_actions::person_id.eq(my_person_id)),
     );
 
-    let report_creator_join = person::table.on(
+    let report_creator_join = aliases::person1.on(
       post_report::creator_id
         .eq(report_creator)
         .or(comment_report::creator_id.eq(report_creator))
@@ -100,7 +103,7 @@ impl ReportCombinedViewInternal {
         .or(community_report::creator_id.eq(report_creator)),
     );
 
-    let item_creator_join = aliases::person1.on(
+    let item_creator_join = person::table.on(
       post::creator_id
         .eq(item_creator)
         .or(comment::creator_id.eq(item_creator))
@@ -352,6 +355,9 @@ impl ReportCombinedQuery {
   ) -> LemmyResult<Vec<ReportCombinedView>> {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(self.limit)?;
+
+    let report_creator = aliases::person1.field(person::id);
+
     let mut query = ReportCombinedViewInternal::joins(user.person.id, user.person.instance_id)
       .select(ReportCombinedViewInternal::as_select())
       .limit(limit)
@@ -379,7 +385,7 @@ impl ReportCombinedQuery {
     }
 
     if self.my_reports_only.unwrap_or_default() {
-      query = query.filter(person::id.eq(user.person.id));
+      query = query.filter(report_creator.eq(user.person.id));
     }
 
     if let Some(type_) = self.type_ {
@@ -573,22 +579,23 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 mod tests {
 
   use crate::{
-    impls::ReportCombinedQuery,
     LocalUserView,
     ReportCombinedView,
     ReportCombinedViewInternal,
+    impls::ReportCombinedQuery,
   };
   use chrono::{Days, Utc};
-  use diesel::{update, ExpressionMethods, QueryDsl};
+  use diesel::{ExpressionMethods, QueryDsl, update};
   use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
+    ReportType,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
       community_report::{CommunityReport, CommunityReportForm},
-      instance::Instance,
+      instance::{Instance, InstanceActions, InstanceBanForm},
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
@@ -596,9 +603,8 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
-    traits::{Crud, Reportable},
-    utils::{build_db_pool_for_tests, get_conn, DbPool},
-    ReportType,
+    traits::{Bannable, Crud, Reportable},
+    utils::{DbPool, build_db_pool_for_tests, get_conn},
   };
   use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;
@@ -619,7 +625,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rcv");
     let inserted_timmy = Person::create(pool, &timmy_form).await?;
@@ -1406,6 +1412,44 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn ensure_creator_data_is_correct() -> LemmyResult<()> {
+    // The creator_banned and other creator_data should be the content creator, not the report
+    // creator.
+
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // sara reports timmys post
+    let sara_report_form = PostReportForm {
+      creator_id: data.sara.id,
+      post_id: data.post.id,
+      original_post_name: "Orig post".into(),
+      original_post_url: None,
+      original_post_body: None,
+      reason: "from sara".into(),
+      violates_instance_rules: false,
+    };
+    let inserted_sara_report = PostReport::report(pool, &sara_report_form).await?;
+
+    // Admin ban timmy (the post creator)
+    let ban_timmy_form = InstanceBanForm::new(data.timmy.id, data.instance.id, None);
+    InstanceActions::ban(pool, &ban_timmy_form).await?;
+
+    let read_sara_report_view =
+      ReportCombinedViewInternal::read_post_report(pool, inserted_sara_report.id, &data.timmy)
+        .await?;
+
+    // Make sure timmy is seen as banned.
+    assert_eq!(read_sara_report_view.creator_banned, true);
 
     cleanup(data, pool).await?;
 

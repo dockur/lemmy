@@ -6,7 +6,7 @@ use lemmy_utils::{error::LemmyResult, settings::structs::FederationWorkerConfig}
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
-  sync::mpsc::{unbounded_channel, UnboundedSender},
+  sync::mpsc::{UnboundedSender, unbounded_channel},
   task::JoinHandle,
   time::sleep,
 };
@@ -150,16 +150,17 @@ impl SendManager {
               )
             }),
           );
-        } else if !should_federate {
-          if let Some(worker) = self.workers.remove(&instance.id) {
-            if let Err(e) = worker.cancel().await {
-              tracing::error!("error stopping worker: {e}");
-            }
-          }
+        } else if !should_federate
+          && let Some(worker) = self.workers.remove(&instance.id)
+          && let Err(e) = worker.cancel().await
+        {
+          tracing::error!("error stopping worker: {e}");
         }
       }
       let worker_count = self.workers.len();
-      tracing::info!("Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)");
+      tracing::info!(
+        "Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)"
+      );
       tokio::select! {
         () = sleep(INSTANCES_RECHECK_DELAY) => {},
         _ = cancel.cancelled() => { return Ok(()) }
@@ -240,9 +241,9 @@ mod test {
       };
       let pool = &mut context.pool();
       let instances = vec![
-        Instance::read_or_create(pool, "alpha.com".to_string()).await?,
-        Instance::read_or_create(pool, "beta.com".to_string()).await?,
-        Instance::read_or_create(pool, "gamma.com".to_string()).await?,
+        Instance::read_or_create(pool, "alpha.com").await?,
+        Instance::read_or_create(pool, "beta.com").await?,
+        Instance::read_or_create(pool, "gamma.com").await?,
       ];
 
       let send_manager = SendManager::new(opts, federation_config, federation_worker_config);
@@ -322,11 +323,7 @@ mod test {
     let instance_id = data.instances[0].id;
     let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
     let person = Person::create(&mut data.context.pool(), &form).await?;
-    let form = FederationBlockListForm {
-      instance_id,
-      updated_at: None,
-      expires_at: None,
-    };
+    let form = FederationBlockListForm::new(instance_id, None);
     FederationBlockList::block(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
@@ -348,10 +345,7 @@ mod test {
     let instance_id = data.instances[0].id;
     let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
     let person = Person::create(&mut data.context.pool(), &form).await?;
-    let form = FederationAllowListForm {
-      instance_id: data.instances[0].id,
-      updated_at: None,
-    };
+    let form = FederationAllowListForm::new(data.instances[0].id);
     FederationAllowList::allow(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;

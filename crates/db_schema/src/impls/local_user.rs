@@ -6,20 +6,20 @@ use crate::{
     site::Site,
   },
   utils::{
+    DbPool,
     functions::{coalesce, lower},
     get_conn,
     now,
-    DbPool,
   },
 };
-use bcrypt::{hash, DEFAULT_COST};
+use bcrypt::{DEFAULT_COST, hash};
 use diesel::{
-  dsl::{insert_into, not, IntervalDsl},
-  result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{IntervalDsl, insert_into, not},
+  result::Error,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
@@ -320,9 +320,9 @@ pub trait LocalUserOptionHelper {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-      Output = Q,
-    >;
+        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+        Output = Q,
+      >;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -360,9 +360,9 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-      Output = Q,
-    >,
+        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+        Output = Q,
+      >,
   {
     if self.is_none() {
       query.filter(community::visibility.eq(CommunityVisibility::Public))
@@ -415,7 +415,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let fiona_person = PersonInsertForm::test_form(inserted_instance.id, "fiona");
     let inserted_fiona_person = Person::create(pool, &fiona_person).await?;
@@ -456,7 +456,7 @@ mod tests {
 
     let darwin_email = "charles.darwin@gmail.com";
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let darwin_person = PersonInsertForm::test_form(inserted_instance.id, "darwin");
     let inserted_darwin_person = Person::create(pool, &darwin_person).await?;

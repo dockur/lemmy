@@ -7,16 +7,16 @@ use crate::{
   },
   create_or_update::private_message::send_create_or_update_pm,
   deletion::{
+    DeletableObjects,
     send_apub_delete_in_community,
     send_apub_delete_private_message,
     send_apub_delete_user,
-    DeletableObjects,
   },
   following::send_follow,
   protocol::{
+    CreateOrUpdateType,
     community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
-    CreateOrUpdateType,
   },
   voting::send_like_activity,
 };
@@ -33,7 +33,7 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_apub_objects::{
-  objects::{person::ApubPerson, PostOrComment},
+  objects::{PostOrComment, person::ApubPerson},
   utils::functions::GetActorType,
 };
 use lemmy_db_schema::{
@@ -46,7 +46,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -76,7 +76,7 @@ async fn verify_person(
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
-    Err(FederationError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
+    Err(UntranslatedError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
     Ok(())
   }
@@ -253,15 +253,15 @@ pub async fn match_outgoing_activities(
         object_id,
         actor,
         community,
-        previous_score,
-        new_score,
+        previous_is_upvote,
+        new_is_upvote,
       } => {
         send_like_activity(
           object_id,
           actor,
           community,
-          previous_score,
-          new_score,
+          previous_is_upvote,
+          new_is_upvote,
           context,
         )
         .await

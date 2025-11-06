@@ -1,21 +1,27 @@
+use crate::context::LemmyContext;
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
 use extism_convert::Json;
+use lemmy_db_schema::{
+  source::{notification::Notification, person::Person},
+  traits::Crud,
+};
+use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
 use lemmy_utils::{
+  VERSION,
   error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
-  VERSION,
 };
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
   env,
   ffi::OsStr,
-  fs::{read_dir, File},
+  fs::{File, read_dir},
   io::BufReader,
   ops::Deref,
   path::PathBuf,
+  sync::LazyLock,
   time::Duration,
 };
 use tokio::task::spawn_blocking;
@@ -24,26 +30,44 @@ use tracing::warn;
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Call a plugin hook without rewriting data
-pub fn plugin_hook_after<T>(name: &'static str, data: &T) -> LemmyResult<()>
+pub fn plugin_hook_after<T>(name: &'static str, data: &T)
 where
   T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
   let plugins = LemmyPlugins::get_or_init();
   if !plugins.function_exists(name) {
-    return Ok(());
+    return;
   }
 
   let data = data.clone();
-  spawn_blocking(move || {
-    run_plugin_hook_after(plugins, name, data).inspect_err(|e| warn!("Plugin error: {e}"))
-  });
+  spawn_blocking(move || run_plugin_hook_after(name, data));
+}
+
+/// Calls plugin hook for the given notifications Loads additional data via
+/// NotificationView, but only if a plugin is active.
+pub async fn plugin_hook_notification(
+  notifications: Vec<Notification>,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let name = "notification_after_create";
+  let plugins = LemmyPlugins::get_or_init();
+  if !plugins.function_exists(name) {
+    return Ok(());
+  }
+
+  for n in notifications {
+    let person = Person::read(&mut context.pool(), n.recipient_id).await?;
+    let view = NotificationView::read(&mut context.pool(), n.id, &person).await?;
+    spawn_blocking(move || run_plugin_hook_after(name, view));
+  }
   Ok(())
 }
 
-fn run_plugin_hook_after<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
+fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
+  let plugins = LemmyPlugins::get_or_init();
   for p in plugins.0 {
     if let Some(plugin) = p.get(name)? {
       let params: Json<T> = data.clone().into();
@@ -135,9 +159,7 @@ impl LemmyPlugin {
 impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
-    // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
-    // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
-    static PLUGINS: Lazy<LemmyPlugins> = Lazy::new(|| {
+    static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
       let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
       let plugin_paths = match read_dir(dir) {
         Ok(r) => r,

@@ -26,8 +26,8 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::proxy_image_link};
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
-use serde::{de::Error, Deserialize, Deserializer, Serialize};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
+use serde::{Deserialize, Deserializer, Serialize, de::Error};
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -193,7 +193,7 @@ impl Page {
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
-        .ok_or_else(|| FederationError::PageDoesNotSpecifyCreator.into()),
+        .ok_or_else(|| UntranslatedError::PageDoesNotSpecifyCreator.into()),
     }
   }
 }

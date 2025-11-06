@@ -4,12 +4,12 @@ use lemmy_api_utils::{
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
 use lemmy_db_schema::{
+  SearchType,
   source::{
     comment::Comment,
-    post::{Post, PostActions, PostReadForm},
+    post::{Post, PostActions},
   },
   traits::Crud,
-  SearchType,
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -67,8 +67,7 @@ pub async fn get_post(
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
-    let read_form = PostReadForm::new(post_id, person_id);
-    PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+    PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
     update_read_comments(
       person_id,

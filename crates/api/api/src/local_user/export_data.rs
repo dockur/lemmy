@@ -1,17 +1,16 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData};
+use lemmy_db_views_notification::{NotificationData, impls::NotificationQuery};
 use lemmy_db_views_person_content_combined::{
-  impls::PersonContentCombinedQuery,
   PersonContentCombinedView,
+  impls::PersonContentCombinedQuery,
 };
 use lemmy_db_views_person_liked_combined::{
-  impls::PersonLikedCombinedQuery,
   PersonLikedCombinedView,
+  impls::PersonLikedCombinedQuery,
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::{
@@ -59,16 +58,7 @@ pub async fn export_data(
     NotificationData::Comment(c) => Some(Comment(c.comment)),
     NotificationData::PrivateMessage(pm) => Some(PrivateMessage(pm.private_message)),
     // skip modlog items
-    NotificationData::AdminAdd(_)
-    | NotificationData::ModAddToCommunity(_)
-    | NotificationData::AdminBan(_)
-    | NotificationData::ModBanFromCommunity(_)
-    | NotificationData::ModLockPost(_)
-    | NotificationData::ModLockComment(_)
-    | NotificationData::ModRemovePost(_)
-    | NotificationData::ModRemoveComment(_)
-    | NotificationData::AdminRemoveCommunity(_)
-    | NotificationData::ModTransferCommunity(_) => None,
+    NotificationData::ModAction(_) => None,
   })
   .collect();
 
@@ -100,8 +90,8 @@ pub async fn export_data(
     .map(|cv| cv.community.ap_id.into())
     .collect();
 
-  let lists = LocalUser::export_backup(pool, local_user_view.person.id).await?;
-  let settings = user_backup_list_to_user_settings_backup(local_user_view, lists);
+  let settings =
+    user_backup_list_to_user_settings_backup(local_user_view, &mut context.pool()).await?;
 
   Ok(Json(ExportDataResponse {
     notifications,

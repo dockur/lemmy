@@ -1,4 +1,4 @@
-use crate::protocol::collections::group_outbox::GroupOutbox;
+use crate::{is_new_instance, protocol::collections::group_outbox::GroupOutbox};
 use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
@@ -10,9 +10,9 @@ use lemmy_api_utils::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_activities::{
   activity_lists::AnnouncableActivities,
   protocol::{
+    CreateOrUpdateType,
     community::announce::AnnounceActivity,
     create_or_update::page::CreateOrUpdatePage,
-    CreateOrUpdateType,
   },
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
@@ -87,10 +87,16 @@ impl Collection for ApubCommunityOutbox {
     _owner: &Self::Owner,
     data: &Data<Self::DataType>,
   ) -> LemmyResult<Self> {
+    // Fetch less posts on new instance to save requests
+    let fetch_limit = if is_new_instance(data).await? {
+      10
+    } else {
+      FETCH_LIMIT_MAX
+    };
     let mut outbox_activities = apub.ordered_items;
-    if outbox_activities.len() > FETCH_LIMIT_MAX {
+    if outbox_activities.len() > fetch_limit {
       outbox_activities = outbox_activities
-        .get(0..(FETCH_LIMIT_MAX))
+        .get(0..(fetch_limit))
         .unwrap_or_default()
         .to_vec();
     }

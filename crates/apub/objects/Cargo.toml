@@ -23,7 +23,6 @@ workspace = true
 
 [dependencies]
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
-lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }
@@ -51,7 +50,6 @@ stringreader = "0.1.1"
 semver = "1.0.27"
 either = "1.15.0"
 assert-json-diff = "2.0.2"
-once_cell = { version = "1.21.3" }
 
 [dev-dependencies]
 serial_test = { workspace = true }

@@ -2,9 +2,9 @@ use crate::{
   protocol::instance::Instance,
   utils::{
     functions::{
+      GetActorType,
       check_apub_id_valid_with_strictness,
       read_from_string_or_source_opt,
-      GetActorType,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, LanguageTag, Source},
@@ -37,7 +37,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyResult},
+  error::{LemmyError, LemmyResult, UntranslatedError},
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
@@ -86,7 +86,7 @@ impl Object for ApubSite {
   }
 
   async fn delete(&self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
-    Err(FederationError::CantDeleteSite.into())
+    Err(UntranslatedError::CantDeleteSite.into())
   }
 
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
@@ -137,8 +137,8 @@ impl Object for ApubSite {
       .id
       .inner()
       .domain()
-      .ok_or(FederationError::UrlWithoutDomain)?;
-    let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
+      .ok_or(UntranslatedError::UrlWithoutDomain)?;
+    let instance = DbInstance::read_or_create(&mut context.pool(), domain).await?;
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
@@ -208,9 +208,9 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id
         .domain()
-        .ok_or(FederationError::UrlWithoutDomain)?;
+        .ok_or(UntranslatedError::UrlWithoutDomain)?;
       Ok(
-        DbInstance::read_or_create(&mut context.pool(), domain.to_string())
+        DbInstance::read_or_create(&mut context.pool(), domain)
           .await?
           .id,
       )

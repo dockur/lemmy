@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use either::Either::*;
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::ApubActor,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::error::LemmyError;
@@ -162,7 +162,7 @@ pub(crate) async fn get_actor_cached(
             .into(),
         )),
         ActorType::MultiCommunity => Left(Right(
-          MultiCommunity::read_from_ap_id(pool, &url)
+          MultiCommunity::read_from_apub_id(pool, &url)
             .await?
             .context("apub multi-comm not found")?
             .into(),
@@ -194,8 +194,8 @@ pub(crate) async fn get_activity_cached(
 }
 
 /// return the most current activity id (with 1 second cache)
-pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
-  static CACHE: LazyLock<Cache<(), ActivityId>> = LazyLock::new(|| {
+pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Option<ActivityId>> {
+  static CACHE: LazyLock<Cache<(), Option<ActivityId>>> = LazyLock::new(|| {
     Cache::builder()
       .time_to_live(*CACHE_DURATION_LATEST_ID)
       .build()
@@ -205,8 +205,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
       use diesel::dsl::max;
       use lemmy_db_schema_file::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
-      let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
-      let latest_id = seq.unwrap_or(ActivityId(0));
+      let latest_id: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id)
     })
     .await

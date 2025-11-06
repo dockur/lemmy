@@ -36,7 +36,7 @@ services:
 ##### Via Docker CLI:
 
 ```bash
-docker run -it --rm --name lemmy -p 8536:8536 -v "./lemmy.hjson:/config/config.hjson" --stop-timeout 60 dockurr/lemmy
+docker run -it --rm --name lemmy -p 8536:8536 -v "./lemmy.hjson:/config/config.hjson" --stop-timeout 60 docker.io/dockurr/lemmy
 ```
 
 ## Stars 🌟

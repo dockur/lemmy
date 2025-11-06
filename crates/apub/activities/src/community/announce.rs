@@ -3,8 +3,8 @@ use crate::{
   generate_activity_id,
   generate_announce_activity_id,
   protocol::{
-    community::announce::{AnnounceActivity, RawAnnouncableActivities},
     IdOrNestedObject,
+    community::announce::{AnnounceActivity, RawAnnouncableActivities},
   },
   send_lemmy_activity,
 };
@@ -22,7 +22,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use serde_json::Value;
 use url::Url;
 
@@ -48,7 +48,7 @@ impl Activity for RawAnnouncableActivities {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      Err(FederationError::CannotReceivePage)?
+      Err(UntranslatedError::CannotReceivePage)?
     }
 
     // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
@@ -61,11 +61,11 @@ impl Activity for RawAnnouncableActivities {
     activity.receive(context).await?;
 
     // if community is local, send activity to followers
-    if let Some(community) = community {
-      if community.local {
-        verify_person_in_community(&ap_id, &community, context).await?;
-        AnnounceActivity::send(self, &community, context).await?;
-      }
+    if let Some(community) = community
+      && community.local
+    {
+      verify_person_in_community(&ap_id, &community, context).await?;
+      AnnounceActivity::send(self, &community, context).await?;
     }
 
     Ok(())
@@ -126,7 +126,7 @@ impl AnnounceActivity {
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
-          .ok_or(FederationError::Unreachable)?
+          .ok_or(UntranslatedError::Unreachable)?
           .clone(),
       };
       let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
@@ -158,7 +158,7 @@ impl Activity for AnnounceActivity {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      Err(FederationError::CannotReceivePage)?
+      Err(UntranslatedError::CannotReceivePage)?
     }
 
     let community = object.community(context).await?;
@@ -206,8 +206,7 @@ async fn can_accept_activity_in_community(
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
-      CommunityActions::check_accept_activity_in_community(&mut context.pool(), community.id)
-        .await?
+      CommunityActions::check_accept_activity_in_community(&mut context.pool(), community).await?
     }
   }
   Ok(())

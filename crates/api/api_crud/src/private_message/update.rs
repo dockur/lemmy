@@ -14,8 +14,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
-  api::{EditPrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
+  api::{EditPrivateMessage, PrivateMessageResponse},
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -47,14 +47,14 @@ pub async fn update_private_message(
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
-  form = plugin_hook_before("before_update_local_private_message", form).await?;
+  form = plugin_hook_before("local_private_message_before_update", form).await?;
   let private_message =
     PrivateMessage::update(&mut context.pool(), private_message_id, &form).await?;
-  plugin_hook_after("after_update_local_private_message", &private_message)?;
+  plugin_hook_after("local_private_message_after_update", &private_message);
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 
-  notify_private_message(&view, false, &context).await?;
+  notify_private_message(&view, false, &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdatePrivateMessage(view.clone()),
