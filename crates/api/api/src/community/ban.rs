@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
@@ -14,21 +15,21 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityPersonBanForm},
     local_user::LocalUser,
-    mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
-use lemmy_db_views_community::api::{BanFromCommunity, BanFromCommunityResponse};
+use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person::{PersonView, api::PersonResponse};
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BanFromCommunityResponse>> {
+) -> LemmyResult<Json<PersonResponse>> {
   let banned_person_id = data.person_id;
   let my_person_id = local_user_view.person.id;
   let expires_at = check_expire_time(data.expires_at)?;
@@ -56,7 +57,7 @@ pub async fn ban_from_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  conn
+  let action = conn
     .run_transaction(|conn| {
       async move {
         if tx_data.ban {
@@ -85,22 +86,20 @@ pub async fn ban_from_community(
         };
 
         // Mod tables
-        let form = ModBanFromCommunityForm {
-          mod_person_id: my_person_id,
-          other_person_id: tx_data.person_id,
-          community_id: tx_data.community_id,
-          reason: tx_data.reason.clone(),
-          banned: Some(tx_data.ban),
+        let form = ModlogInsertForm::mod_ban_from_community(
+          my_person_id,
+          tx_data.community_id,
+          tx_data.person_id,
+          tx_data.ban,
           expires_at,
-        };
-
-        ModBanFromCommunity::create(&mut conn.into(), &form).await?;
-
-        Ok(())
+          &tx_data.reason,
+        );
+        Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()
     })
     .await?;
+  notify_mod_action(action.clone(), &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),
@@ -121,8 +120,5 @@ pub async fn ban_from_community(
     &context,
   )?;
 
-  Ok(Json(BanFromCommunityResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(PersonResponse { person_view }))
 }

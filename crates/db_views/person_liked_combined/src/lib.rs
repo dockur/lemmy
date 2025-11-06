@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
+  LikeType,
+  PersonContentType,
   newtypes::PaginationCursor,
   source::{
     combined::person_liked::PersonLikedCombined,
@@ -10,8 +12,6 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  LikeType,
-  PersonContentType,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
@@ -21,6 +21,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeCommunityBanExpiresType,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_admin,
@@ -29,7 +30,6 @@ use {
     creator_local_home_community_banned,
     local_user_can_mod,
     post_tags_fragment,
-    CreatorLocalHomeCommunityBanExpiresType,
   },
   lemmy_db_views_local_user::LocalUserView,
 };
@@ -116,8 +116,7 @@ pub(crate) struct PersonLikedCombinedViewInternal {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-// Use serde's internal tagging, to work easier with javascript libraries
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum PersonLikedCombinedView {
   Post(PostView),
   Comment(CommentView),

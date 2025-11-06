@@ -1,5 +1,5 @@
 use crate::LocalUserView;
-use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
+use actix_web::{FromRequest, HttpMessage, HttpRequest, dev::Payload};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -15,21 +15,21 @@ use lemmy_db_schema::{
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
-    person::{person_keys, Person, PersonInsertForm},
+    person::{Person, PersonInsertForm, person_keys},
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
+    DbPool,
     functions::{coalesce, lower},
     get_conn,
     now,
     paginate,
     queries::joins::creator_home_instance_actions_join,
-    DbPool,
   },
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
-use std::future::{ready, Ready};
+use std::future::{Ready, ready};
 
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -129,9 +129,7 @@ impl LocalUserView {
     bio: &str,
     admin: bool,
   ) -> LemmyResult<Self> {
-    let instance_id = Instance::read_or_create(pool, "example.com".to_string())
-      .await?
-      .id;
+    let instance_id = Instance::read_or_create(pool, "example.com").await?.id;
     let person_form = PersonInsertForm {
       display_name: Some(name.to_owned()),
       bio: Some(bio.to_owned()),
@@ -254,7 +252,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let alice_form = PersonInsertForm {
       local: Some(true),

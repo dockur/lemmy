@@ -1,14 +1,14 @@
 use crate::{
   newtypes::LocalUserId,
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{
-  delete,
-  dsl::{insert_into, now, IntervalDsl},
-  sql_types::Timestamptz,
   ExpressionMethods,
   IntoSql,
+  delete,
+  dsl::{IntervalDsl, insert_into, now},
+  sql_types::Timestamptz,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::password_reset_request;
@@ -67,7 +67,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // Setup
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy prw");
     let inserted_person = Person::create(pool, &new_person).await?;
     let new_local_user = LocalUserInsertForm::test_form(inserted_person.id);

@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
+  SearchSortType,
+  SearchType,
   newtypes::{CommunityId, PaginationCursor, PersonId},
   source::{
     combined::search::SearchCombined,
@@ -11,8 +13,6 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  SearchSortType,
-  SearchType,
 };
 use lemmy_db_schema_file::enums::ListingType;
 use lemmy_db_views_comment::CommentView;
@@ -25,6 +25,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeBanExpiresType,
     community_post_tags_fragment,
     creator_ban_expires_from_community,
     creator_banned_from_community,
@@ -34,11 +35,11 @@ use {
     creator_local_home_banned,
     local_user_can_mod,
     post_tags_fragment,
-    CreatorLocalHomeBanExpiresType,
   },
   lemmy_db_views_local_user::LocalUserView,
 };
 
+pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 
@@ -131,8 +132,7 @@ pub(crate) struct SearchCombinedViewInternal {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-// Use serde's internal tagging, to work easier with javascript libraries
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum SearchCombinedView {
   Post(PostView),
   Comment(CommentView),

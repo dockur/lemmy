@@ -9,8 +9,8 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
-use lemmy_db_views_site::{api::GetSiteResponse, SiteView};
-use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
+use lemmy_db_views_site::{SiteView, api::GetSiteResponse};
+use lemmy_utils::{CacheLock, VERSION, build_cache, error::LemmyResult};
 use std::sync::LazyLock;
 
 pub async fn get_site(
@@ -19,8 +19,7 @@ pub async fn get_site(
 ) -> LemmyResult<Json<GetSiteResponse>> {
   // This data is independent from the user account so we can cache it across requests
   static CACHE: CacheLock<GetSiteResponse> = LazyLock::new(build_cache);
-  let mut site_response = CACHE
-    .try_get_with((), read_site(&context))
+  let mut site_response = Box::pin(CACHE.try_get_with((), read_site(&context)))
     .await
     .map_err(|e| anyhow::anyhow!("Failed to construct site response: {e}"))?;
 

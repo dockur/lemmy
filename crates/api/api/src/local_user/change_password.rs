@@ -1,6 +1,6 @@
 use actix_web::{
-  web::{Data, Json},
   HttpRequest,
+  web::{Data, Json},
 };
 use bcrypt::verify;
 use lemmy_api_utils::{
@@ -48,7 +48,7 @@ pub async fn change_password(
 
   // Return the jwt
   Ok(Json(LoginResponse {
-    jwt: Some(Claims::generate(updated_local_user.id, req, &context).await?),
+    jwt: Some(Claims::generate(updated_local_user.id, data.stay_logged_in, req, &context).await?),
     verify_email_sent: false,
     registration_created: false,
   }))

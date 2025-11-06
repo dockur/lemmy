@@ -4,6 +4,7 @@ use actix_web::web::Json;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_comment_deleted_or_removed,
@@ -19,8 +20,8 @@ use lemmy_db_schema::{
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{CommentReportResponse, CreateCommentReport},
   ReportCombinedViewInternal,
+  api::{CommentReportResponse, CreateCommentReport},
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
@@ -70,6 +71,7 @@ pub async fn create_comment_report(
 
   let comment_report_view =
     ReportCombinedViewInternal::read_comment_report(&mut context.pool(), report.id, person).await?;
+  plugin_hook_after("comment_report_after_create", &comment_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

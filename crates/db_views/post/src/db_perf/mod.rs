@@ -1,11 +1,11 @@
 mod series;
 
-use crate::{db_perf::series::ValuesFromSeries, impls::PostQuery, PostView};
+use crate::{PostView, db_perf::series::ValuesFromSeries, impls::PostQuery};
 use diesel::{
-  dsl::{self, sql},
-  sql_types,
   ExpressionMethods,
   IntoSql,
+  dsl::{self, sql},
+  sql_types,
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
 use lemmy_db_schema::{
@@ -66,7 +66,7 @@ async fn db_perf() -> LemmyResult<()> {
       .await?;
   }
 
-  let instance = Instance::read_or_create(&mut conn.into(), "reddit.com".to_owned()).await?;
+  let instance = Instance::read_or_create(&mut conn.into(), "reddit.com").await?;
 
   println!("🫃 creating {} people", args.people);
   let mut person_ids = vec![];

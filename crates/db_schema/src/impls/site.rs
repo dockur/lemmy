@@ -5,9 +5,9 @@ use crate::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, functions::lower, get_conn},
 };
-use diesel::{dsl::insert_into, ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{local_site, site};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -80,7 +80,7 @@ impl Site {
     let conn = &mut get_conn(pool).await?;
 
     site::table
-      .filter(site::ap_id.eq(object_id))
+      .filter(lower(site::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()

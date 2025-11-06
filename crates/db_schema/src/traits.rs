@@ -1,18 +1,17 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{
   associations::HasTable,
   dsl,
   query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
-  Table,
 };
 use diesel_async::{
-  methods::{ExecuteDsl, LoadQuery},
   AsyncPgConnection,
   RunQueryDsl,
+  methods::{ExecuteDsl, LoadQuery},
 };
 use diesel_uplete::UpleteCount;
 use lemmy_utils::{
@@ -23,12 +22,10 @@ use std::future::Future;
 use url::Url;
 
 /// Returned by `diesel::delete`
-pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
+type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
 /// Returned by `Self::table().find(id)`
-pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
-
-pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
+type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
 
 // Trying to create default implementations for `create` and `update` results in a lifetime mess and
 // weird compile errors. https://github.com/rust-lang/rust/issues/102211
@@ -37,7 +34,6 @@ where
   Self::Table: FindDsl<Self::IdType>,
   Find<Self>: LimitDsl + IntoUpdateTarget + Send,
   Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-
   // Used by `RunQueryDsl::first`
   dsl::Limit<Find<Self>>: LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
 {
@@ -213,16 +209,13 @@ pub trait ApubActor: Sized {
     object_id: &DbUrl,
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
   /// - actor_name is the name of the community or user to read.
+  /// - domain if None only local actors are searched, if Some only actors from that domain
   /// - include_deleted, if true, will return communities or users that were deleted/removed
   fn read_from_name(
     pool: &mut DbPool<'_>,
     actor_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
-  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
-  fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    actor_name: &str,
-    protocol_domain: &str,
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
 
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl>;

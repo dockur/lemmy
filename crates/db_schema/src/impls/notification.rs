@@ -1,24 +1,28 @@
 use crate::{
   newtypes::{CommentId, NotificationId, PersonId},
   source::notification::{Notification, NotificationInsertForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{
-  dsl::{insert_into, update},
   ExpressionMethods,
   QueryDsl,
+  delete,
+  dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::notification;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Notification {
-  pub async fn create(pool: &mut DbPool<'_>, form: &[NotificationInsertForm]) -> LemmyResult<Self> {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &[NotificationInsertForm],
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     insert_into(notification::table)
       .values(form)
       .on_conflict_do_nothing()
-      .get_result::<Self>(conn)
+      .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
@@ -67,5 +71,14 @@ impl Notification {
     .execute(conn)
     .await
     .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// Only for tests
+  pub async fn delete(pool: &mut DbPool<'_>, id: NotificationId) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    delete(notification::table.filter(notification::id.eq(id)))
+      .execute(conn)
+      .await?;
+    Ok(())
   }
 }

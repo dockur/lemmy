@@ -12,14 +12,18 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
+  LikeType,
+  PersonContentType,
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::person_liked::{person_liked_combined_keys as key, PersonLikedCombined},
+  source::combined::person_liked::{PersonLikedCombined, person_liked_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -37,10 +41,7 @@ use lemmy_db_schema::{
       my_person_actions_join,
       my_post_actions_join,
     },
-    DbPool,
   },
-  LikeType,
-  PersonContentType,
 };
 use lemmy_db_schema_file::schema::{comment, person, person_liked_combined, post};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -179,8 +180,8 @@ impl PersonLikedCombinedQuery {
     if let Some(like_type) = self.like_type {
       query = match like_type {
         LikeType::All => query,
-        LikeType::LikedOnly => query.filter(person_liked_combined::like_score.eq(1)),
-        LikeType::DislikedOnly => query.filter(person_liked_combined::like_score.eq(-1)),
+        LikeType::LikedOnly => query.filter(person_liked_combined::vote_is_upvote),
+        LikeType::DislikedOnly => query.filter(not(person_liked_combined::vote_is_upvote)),
       }
     }
 
@@ -192,7 +193,7 @@ impl PersonLikedCombinedQuery {
       None,
       self.page_back,
     )
-    .then_order_by(key::liked_at)
+    .then_order_by(key::voted_at)
     // Tie breaker
     .then_order_by(key::id);
 
@@ -261,8 +262,9 @@ impl InternalToCombinedView for PersonLikedCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{impls::PersonLikedCombinedQuery, LocalUserView, PersonLikedCombinedView};
+  use crate::{LocalUserView, PersonLikedCombinedView, impls::PersonLikedCombinedQuery};
   use lemmy_db_schema::{
+    LikeType,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
@@ -272,8 +274,7 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Likeable},
-    utils::{build_db_pool_for_tests, DbPool},
-    LikeType,
+    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -290,7 +291,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
     let timmy = Person::create(pool, &timmy_form).await?;
@@ -366,13 +367,13 @@ mod tests {
     assert_eq!(0, timmy_liked.len());
 
     // Like a few things
-    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, 1);
+    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, true);
     CommentActions::like(pool, &like_sara_comment_2).await?;
 
-    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, -1);
+    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, false);
     CommentActions::like(pool, &dislike_sara_comment).await?;
 
-    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, 1);
+    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, true);
     PostActions::like(pool, &post_like_form).await?;
 
     let timmy_liked_all = PersonLikedCombinedQuery::default()
@@ -384,7 +385,10 @@ mod tests {
     if let PersonLikedCombinedView::Post(v) = &timmy_liked_all[0] {
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(Some(1), v.post_actions.as_ref().and_then(|l| l.like_score));
+      assert_eq!(
+        Some(true),
+        v.post_actions.as_ref().and_then(|l| l.vote_is_upvote)
+      );
     } else {
       panic!("wrong type");
     }
@@ -392,8 +396,8 @@ mod tests {
       assert_eq!(data.sara_comment.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(-1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(false),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
@@ -402,8 +406,8 @@ mod tests {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(true),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
@@ -421,8 +425,8 @@ mod tests {
       assert_eq!(data.sara_comment.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(-1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(false),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");

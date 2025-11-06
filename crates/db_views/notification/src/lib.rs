@@ -1,19 +1,21 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
+  NotificationDataType,
   newtypes::PaginationCursor,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
+    modlog::Modlog,
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
     private_message::PrivateMessage,
     tag::TagsView,
   },
-  NotificationDataType,
 };
 use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
@@ -22,27 +24,32 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
+    Person1AliasAllColumnsTuple,
     utils::queries::selects::{
-      creator_ban_expires_from_community,
-      creator_banned_from_community,
+      CreatorLocalHomeBanExpiresType,
       creator_is_admin,
       creator_is_moderator,
       creator_local_home_ban_expires,
       creator_local_home_banned,
       local_user_can_mod,
+    },
+    utils::queries::selects::{
+      creator_ban_expires_from_community,
+      creator_banned_from_community,
       person1_select,
       post_tags_fragment,
-      CreatorLocalHomeBanExpiresType,
     },
-    Person1AliasAllColumnsTuple,
   },
 };
 
 pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+pub mod tests;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 struct NotificationViewInternal {
@@ -57,7 +64,7 @@ struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  creator: Person,
+  creator: Option<Person>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Person1AliasAllColumnsTuple,
@@ -75,18 +82,20 @@ struct NotificationViewInternal {
   person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
   comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_admin()
-    )
-  )]
-  creator_is_admin: bool,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  modlog: Option<Modlog>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_tags_fragment()
     )
   )]
   post_tags: TagsView,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = creator_is_admin()
+    )
+  )]
+  creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod()
@@ -137,11 +146,12 @@ pub struct NotificationView {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum NotificationData {
   Comment(CommentView),
   Post(PostView),
   PrivateMessage(PrivateMessageView),
+  ModAction(ModlogView),
 }
 
 #[skip_serializing_none]

@@ -2,6 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
@@ -9,14 +10,14 @@ use lemmy_db_schema::{
   source::{
     instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
-    mod_log::admin::{AdminBan, AdminBanForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{BanPerson, BanPersonResponse},
   PersonView,
+  api::{BanPerson, PersonResponse},
 };
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
@@ -24,7 +25,7 @@ pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BanPersonResponse>> {
+) -> LemmyResult<Json<PersonResponse>> {
   let local_instance_id = local_user_view.person.instance_id;
   let my_person_id = local_user_view.person.id;
 
@@ -63,16 +64,15 @@ pub async fn ban_from_site(
   };
 
   // Mod tables
-  let form = AdminBanForm {
-    mod_person_id: my_person_id,
-    other_person_id: data.person_id,
-    reason: data.reason.clone(),
-    banned: Some(data.ban),
+  let form = ModlogInsertForm::admin_ban(
+    &local_user_view.person,
+    data.person_id,
+    data.ban,
     expires_at,
-    instance_id: local_user_view.person.instance_id,
-  };
-
-  AdminBan::create(&mut context.pool(), &form).await?;
+    &data.reason,
+  );
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),
@@ -95,8 +95,5 @@ pub async fn ban_from_site(
     &context,
   )?;
 
-  Ok(Json(BanPersonResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(PersonResponse { person_view }))
 }

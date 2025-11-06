@@ -1,8 +1,8 @@
 use activitypub_federation::{
   config::Data,
-  fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink, WEBFINGER_CONTENT_TYPE},
+  fetch::webfinger::{WEBFINGER_CONTENT_TYPE, Webfinger, WebfingerLink, extract_webfinger_name},
 };
-use actix_web::{web, web::Query, HttpResponse};
+use actix_web::{HttpResponse, web, web::Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
@@ -46,23 +46,24 @@ async fn get_webfinger_response(
     vec![webfinger_link_for_actor(Some(url), "none", &context)?]
   } else {
     // webfinger response for user/community
-    let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
+    let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, None, false)
       .await
       .ok()
       .flatten()
       .map(|c| c.ap_id.into());
-    let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
-      .await
-      .ok()
-      .flatten()
-      .and_then(|c| {
-        if c.visibility.can_federate() {
-          let id: Url = c.ap_id.into();
-          Some(id)
-        } else {
-          None
-        }
-      });
+    let community_id: Option<Url> =
+      Community::read_from_name(&mut context.pool(), name, None, false)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|c| {
+          if c.visibility.can_federate() {
+            let id: Url = c.ap_id.into();
+            Some(id)
+          } else {
+            None
+          }
+        });
 
     // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
     // community last so that it gets prioritized. For Lemmy the order doesn't matter.

@@ -4,9 +4,10 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::person::{person_keys as key, Person},
+  source::person::{Person, person_keys as key},
   traits::{Crud, PaginationCursorBuilder},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -15,7 +16,6 @@ use lemmy_db_schema::{
       creator_local_instance_actions_join,
       my_person_actions_join,
     },
-    DbPool,
   },
 };
 use lemmy_db_schema_file::schema::{local_user, person};
@@ -145,11 +145,10 @@ mod tests {
     alice: Person,
     alice_local_user: LocalUser,
     bob: Person,
-    bob_local_user: LocalUser,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let alice_form = PersonInsertForm {
       local: Some(true),
@@ -165,22 +164,15 @@ mod tests {
       ..PersonInsertForm::test_form(instance.id, "bob")
     };
     let bob = Person::create(pool, &bob_form).await?;
-    let bob_local_user_form = LocalUserInsertForm::test_form(bob.id);
-    let bob_local_user = LocalUser::create(pool, &bob_local_user_form, vec![]).await?;
 
     Ok(Data {
       alice,
       alice_local_user,
       bob,
-      bob_local_user,
     })
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    LocalUser::delete(pool, data.alice_local_user.id).await?;
-    LocalUser::delete(pool, data.bob_local_user.id).await?;
-    Person::delete(pool, data.alice.id).await?;
-    Person::delete(pool, data.bob.id).await?;
     Instance::delete(pool, data.bob.instance_id).await?;
     Ok(())
   }
@@ -273,9 +265,11 @@ mod tests {
     )
     .await?;
 
-    assert!(read
-      .person_actions
-      .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some()));
+    assert!(
+      read
+        .person_actions
+        .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some())
+    );
 
     cleanup(data, pool).await
   }

@@ -11,18 +11,18 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower, get_conn, DbPool},
+  utils::{DbPool, format_actor_url, functions::lower, get_conn},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{exists, insert_into, not, select},
-  expression::SelectableHelper,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{exists, insert_into, not, select},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{
   instance,
   instance_actions,
@@ -164,7 +164,7 @@ impl ApubActor for Person {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
-      .filter(person::ap_id.eq(object_id))
+      .filter(lower(person::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()
@@ -174,35 +174,24 @@ impl ApubActor for Person {
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     from_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = person::table
+      .inner_join(instance::table)
       .into_boxed()
-      .filter(person::local.eq(true))
-      .filter(lower(person::name).eq(from_name.to_lowercase()));
+      .filter(lower(person::name).eq(from_name.to_lowercase()))
+      .select(person::all_columns);
     if !include_deleted {
       q = q.filter(person::deleted.eq(false))
     }
+    if let Some(domain) = domain {
+      q = q.filter(lower(instance::domain).eq(domain.to_lowercase()))
+    } else {
+      q = q.filter(person::local.eq(true))
+    }
     q.first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  async fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    person_name: &str,
-    for_domain: &str,
-  ) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-
-    person::table
-      .inner_join(instance::table)
-      .filter(lower(person::name).eq(person_name.to_lowercase()))
-      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(person::all_columns)
-      .first(conn)
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -376,15 +365,11 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    like_score: i16,
+    vote_is_upvote: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = match like_score {
-      1 => (1, 0),
-      -1 => (0, 1),
-      _ => return Err(LemmyErrorType::NotFound.into()),
-    };
+    let (upvotes_inc, downvotes_inc) = if vote_is_upvote { (1, 0) } else { (0, 1) };
 
     let voted_at = Utc::now();
 
@@ -411,20 +396,16 @@ impl PersonActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  /// Removes a person like. A previous_score of zero throws an error.
+  /// Removes a person like.
   pub async fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    previous_score: i16,
+    previous_is_upvote: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = match previous_score {
-      1 => (-1, 0),
-      -1 => (0, -1),
-      _ => return Err(LemmyErrorType::NotFound.into()),
-    };
+    let (upvotes_inc, downvotes_inc) = if previous_is_upvote { (-1, 0) } else { (0, -1) };
     let voted_at = Utc::now();
 
     insert_into(person_actions::table)
@@ -476,7 +457,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
@@ -531,7 +512,7 @@ mod tests {
   async fn follow() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let person_form_1 = PersonInsertForm::test_form(inserted_instance.id, "erich");
     let person_1 = Person::create(pool, &person_form_1).await?;
@@ -560,7 +541,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_user_agg");
 
@@ -586,7 +567,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
     let comment_form = CommentInsertForm::new(
@@ -596,7 +577,7 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let mut comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
+    let mut comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
 
     let _inserted_comment_like = CommentActions::like(pool, &comment_like).await?;
 
@@ -609,7 +590,7 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     let child_comment_like =
-      CommentLikeForm::new(another_inserted_person.id, inserted_child_comment.id, 1);
+      CommentLikeForm::new(another_inserted_person.id, inserted_child_comment.id, true);
 
     let _inserted_child_comment_like = CommentActions::like(pool, &child_comment_like).await?;
 

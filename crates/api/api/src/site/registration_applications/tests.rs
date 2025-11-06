@@ -27,7 +27,7 @@ use lemmy_db_views_registration_applications::api::{
   ListRegistrationApplicationsResponse,
 };
 use lemmy_db_views_site::api::EditSite;
-use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
+use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 use serial_test::serial;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
@@ -252,14 +252,14 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  update_site(
+  Box::pin(update_site(
     Json(EditSite {
       require_email_verification: Some(false),
       ..Default::default()
     }),
     context.clone(),
     admin_local_user_view.clone(),
-  )
+  ))
   .await?;
 
   // TODO: There is probably a better way to ensure cache invalidation
@@ -359,14 +359,14 @@ async fn test_application_approval() -> LemmyResult<()> {
     expected_total_applications,
   );
 
-  update_site(
+  Box::pin(update_site(
     Json(EditSite {
       registration_mode: Some(RegistrationMode::Open),
       ..Default::default()
     }),
     context.clone(),
     admin_local_user_view.clone(),
-  )
+  ))
   .await?;
 
   // TODO: There is probably a better way to ensure cache invalidation

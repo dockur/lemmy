@@ -1,24 +1,27 @@
 use crate::{CommentView, NotificationData, NotificationView, NotificationViewInternal};
 use diesel::{
-  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
+  PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
+  NotificationDataType,
   aliases,
-  newtypes::PaginationCursor,
+  newtypes::{NotificationId, PaginationCursor},
   source::{
-    notification::{notification_keys, Notification},
+    notification::{Notification, notification_keys},
     person::Person,
   },
   traits::PaginationCursorBuilder,
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -40,14 +43,13 @@ use lemmy_db_schema::{
         my_post_actions_join,
       },
     },
-    DbPool,
   },
-  NotificationDataType,
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,
-  schema::{comment, notification, person, post, private_message},
+  schema::{comment, modlog, notification, person, post, private_message},
 };
+use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -66,7 +68,8 @@ impl NotificationView {
             .is_not_null()
             .and(post::creator_id.eq(item_creator)),
         )
-        .or(private_message::creator_id.eq(item_creator)),
+        .or(private_message::creator_id.eq(item_creator))
+        .or(modlog::mod_id.eq(item_creator)),
     );
 
     let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
@@ -101,8 +104,6 @@ impl NotificationView {
     let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person.id));
     let my_comment_actions_join: my_comment_actions_join =
       my_comment_actions_join(Some(my_person.id));
-    let my_local_user_admin_join: my_local_user_admin_join =
-      my_local_user_admin_join(Some(my_person.id));
     let my_instance_communities_actions_join: my_instance_communities_actions_join =
       my_instance_communities_actions_join(Some(my_person.id));
     let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
@@ -110,13 +111,17 @@ impl NotificationView {
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person.id));
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(my_person.instance_id);
+    let my_local_user_admin_join: my_local_user_admin_join =
+      my_local_user_admin_join(Some(my_person.id));
 
+    // Note: avoid adding any more joins here as it will significantly slow down compilation.
     notification::table
+      .left_join(modlog::table)
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
       .left_join(community_join())
-      .inner_join(item_creator_join)
+      .left_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
@@ -155,13 +160,31 @@ impl NotificationView {
 
     // These filters need to be kept in sync with the filters in queries().list()
     if !show_bot_accounts {
-      query = query.filter(not(person::bot_account));
+      query = query.filter(person::bot_account.is_distinct_from(true));
     }
 
     query
       .first::<i64>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    id: NotificationId,
+    my_person: &Person,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    let res = Self::joins(my_person)
+      .filter(notification::id.eq(id))
+      .select(NotificationViewInternal::as_select())
+      .get_result::<NotificationViewInternal>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    // TODO: should pass this in as param
+    let hide_modlog_names = true;
+    map_to_enum(res, hide_modlog_names).ok_or(LemmyErrorType::NotFound.into())
   }
 }
 
@@ -192,6 +215,7 @@ pub struct NotificationQuery {
   pub type_: Option<NotificationDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
+  pub hide_modlog_names: Option<bool>,
   pub cursor_data: Option<Notification>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -235,8 +259,8 @@ impl NotificationQuery {
       );
     }
 
-    if !(self.show_bot_accounts.unwrap_or_default()) {
-      query = query.filter(not(person::bot_account));
+    if !self.show_bot_accounts.unwrap_or_default() {
+      query = query.filter(person::bot_account.is_distinct_from(true));
     };
 
     // Dont show replies from blocked users or instances
@@ -274,55 +298,82 @@ impl NotificationQuery {
       .load::<NotificationViewInternal>(conn)
       .await?;
 
-    Ok(res.into_iter().filter_map(map_to_enum).collect())
+    let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
+    Ok(
+      res
+        .into_iter()
+        .filter_map(|r| map_to_enum(r, hide_modlog_names))
+        .collect(),
+    )
   }
 }
 
-fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
-  let data = if let (Some(comment), Some(post), Some(community)) =
-    (v.comment, v.post.clone(), v.community.clone())
-  {
+fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<NotificationView> {
+  let data = if let (Some(comment), Some(post), Some(community), Some(creator)) = (
+    v.comment.clone(),
+    v.post.clone(),
+    v.community.clone(),
+    v.creator.clone(),
+  ) {
     NotificationData::Comment(CommentView {
       comment,
       post,
       community,
-      creator: v.creator,
+      creator,
       community_actions: v.community_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
-      creator_is_admin: v.creator_is_admin,
       post_tags: v.post_tags,
+      creator_banned_from_community: v.creator_banned_from_community,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+      creator_is_admin: v.creator_is_admin,
       can_mod: v.can_mod,
       creator_banned: v.creator_banned,
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
-      creator_banned_from_community: v.creator_banned_from_community,
-      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
-  } else if let (Some(post), Some(community)) = (v.post, v.community) {
+  } else if let (Some(post), Some(community), Some(creator)) =
+    (v.post.clone(), v.community.clone(), v.creator.clone())
+  {
     NotificationData::Post(PostView {
       post,
       community,
-      creator: v.creator,
+      creator,
       image_details: v.image_details,
       community_actions: v.community_actions,
       post_actions: v.post_actions,
       person_actions: v.person_actions,
-      creator_is_admin: v.creator_is_admin,
       tags: v.post_tags,
+      creator_banned_from_community: v.creator_banned_from_community,
+      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+      creator_is_admin: v.creator_is_admin,
       can_mod: v.can_mod,
       creator_banned: v.creator_banned,
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
-      creator_banned_from_community: v.creator_banned_from_community,
-      creator_community_ban_expires_at: v.creator_community_ban_expires_at,
     })
-  } else if let Some(private_message) = v.private_message {
+  } else if let (Some(private_message), Some(creator)) =
+    (v.private_message.clone(), v.creator.clone())
+  {
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
-      creator: v.creator,
+      creator,
       recipient: v.recipient,
     })
+  } else if let (Some(modlog), Some(creator)) = (v.modlog, v.creator) {
+    let m = ModlogView {
+      modlog,
+      moderator: Some(creator),
+      target_person: Some(v.recipient),
+      target_community: v.community,
+      target_post: v.post,
+      target_comment: v.comment,
+      // TODO: probably need to set this in case user gets banned by remote instance,
+      // means we need to join it
+      target_instance: None,
+    };
+    let m = m.hide_mod_name(hide_modlog_name);
+    NotificationData::ModAction(m)
   } else {
     return None;
   };

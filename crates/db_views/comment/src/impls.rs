@@ -1,26 +1,28 @@
 use crate::{CommentSlimView, CommentView};
 use diesel::{
-  dsl::exists,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::exists,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::{nlevel, Ltree, LtreeExtensions};
+use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
-    comment::{comment_keys as key, Comment},
+    comment::{Comment, comment_keys as key},
     local_user::LocalUser,
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
+    DbPool,
+    Subpath,
     get_conn,
     limit_fetch,
     now,
@@ -41,8 +43,6 @@ use lemmy_db_schema::{
       },
     },
     seconds_to_pg_interval,
-    DbPool,
-    Subpath,
   },
 };
 use lemmy_db_schema_file::{
@@ -321,8 +321,8 @@ mod tests {
 
   use super::*;
   use crate::{
-    impls::{CommentQuery, DbPool},
     CommentView,
+    impls::{CommentQuery, DbPool},
   };
   use lemmy_db_schema::{
     assert_length,
@@ -370,7 +370,8 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    Instance::read_all(pool).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
@@ -456,7 +457,7 @@ mod tests {
       )
     );
 
-    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, 1);
+    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, true);
 
     CommentActions::like(pool, &comment_like_form).await?;
 
@@ -509,10 +510,12 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    assert!(read_comment_views_with_person[0]
-      .comment_actions
-      .as_ref()
-      .is_some_and(|x| x.like_score == Some(1)));
+    assert!(
+      read_comment_views_with_person[0]
+        .comment_actions
+        .as_ref()
+        .is_some_and(|x| x.vote_is_upvote == Some(true))
+    );
     assert!(read_comment_views_with_person[0].can_mod);
 
     // Make sure its 1, not showing the blocked comment
@@ -527,9 +530,11 @@ mod tests {
     .await?;
 
     // Make sure block set the creator blocked
-    assert!(read_comment_from_blocked_person
-      .person_actions
-      .is_some_and(|x| x.blocked_at.is_some()));
+    assert!(
+      read_comment_from_blocked_person
+        .person_actions
+        .is_some_and(|x| x.blocked_at.is_some())
+    );
 
     cleanup(data, pool).await
   }
@@ -602,10 +607,12 @@ mod tests {
         .map(|r| r.comment.content.as_str())
         .collect::<Vec<&str>>()
     );
-    assert!(read_comment_views_parent_max_depth[1]
-      .comment
-      .content
-      .eq("Comment 3"));
+    assert!(
+      read_comment_views_parent_max_depth[1]
+        .comment
+        .content
+        .eq("Comment 3")
+    );
     assert_length!(3, read_comment_views_parent_max_depth);
 
     cleanup(data, pool).await
@@ -850,9 +857,11 @@ mod tests {
     )
     .await?;
 
-    assert!(comment_view
-      .community_actions
-      .is_some_and(|x| x.received_ban_at.is_some()));
+    assert!(
+      comment_view
+        .community_actions
+        .is_some_and(|x| x.received_ban_at.is_some())
+    );
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     cleanup(data, pool).await
