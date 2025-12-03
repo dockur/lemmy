@@ -794,9 +794,12 @@ export async function listPersonContent(
   return api.listPersonContent(form);
 }
 
-export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
+export async function deleteUser(
+  api: LemmyHttp,
+  delete_content: boolean = true,
+): Promise<SuccessResponse> {
   let form: DeleteAccount = {
-    delete_content: true,
+    delete_content,
     password,
   };
   return api.deleteAccount(form);
@@ -980,7 +983,7 @@ export async function deleteAllMedia(api: LemmyHttp) {
     limit: imageFetchLimit,
   });
   Promise.allSettled(
-    imagesRes.data
+    imagesRes.items
       .map(image => {
         const form: DeleteImageParams = {
           filename: image.local_image.pictrs_alias,
@@ -1012,7 +1015,7 @@ export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
   let res = await api.getPosts({ type_: "all", limit: 50 });
   await Promise.allSettled(
-    Array.from(new Set(res.data.map(p => p.post.id)))
+    Array.from(new Set(res.items.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id, reason: "purge" }))
       // Ignore errors
       .map(p => p.catch(e => e)),

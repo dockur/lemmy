@@ -15,6 +15,7 @@ import {
   saveUserSettingsFederated,
   setupLogins,
   alphaUrl,
+  betaUrl,
   saveUserSettings,
   getPost,
   getComments,
@@ -26,6 +27,7 @@ import {
   banPersonFromSite,
   statusNotFound,
   statusUnauthorized,
+  listPersonContent,
   waitUntil,
 } from "./shared";
 import {
@@ -125,7 +127,7 @@ test("Delete user", async () => {
   );
   await waitUntil(
     () => getComments(alpha, localComment.post_id),
-    c => c.data[0].comment.deleted,
+    c => c.items[0].comment.deleted,
   );
   await waitUntil(
     () => alpha.getComment({ id: remoteComment.id }),
@@ -149,7 +151,7 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
 
   let form: GetPosts = {};
   let posts = invalid_auth.getPosts(form);
-  expect((await posts).data).toBeDefined();
+  expect((await posts).items).toBeDefined();
 });
 
 test("Create user with Arabic name", async () => {
@@ -195,13 +197,13 @@ test("Create user with accept-language", async () => {
 
 test("Set a new avatar, old avatar is deleted", async () => {
   const listMediaRes = await alphaImage.listMedia();
-  expect(listMediaRes.data.length).toBe(0);
+  expect(listMediaRes.items.length).toBe(0);
   const upload_form1: UploadImage = {
     image: Buffer.from("test1"),
   };
   await alpha.uploadUserAvatar(upload_form1);
   const listMediaRes1 = await alphaImage.listMedia();
-  expect(listMediaRes1.data.length).toBe(1);
+  expect(listMediaRes1.items.length).toBe(1);
 
   let my_user1 = await alpha.getMyUser();
   expect(my_user1.local_user_view.person.avatar).toBeDefined();
@@ -212,23 +214,23 @@ test("Set a new avatar, old avatar is deleted", async () => {
   await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes2 = await alphaImage.listMedia();
-  expect(listMediaRes2.data.length).toBe(1);
+  expect(listMediaRes2.items.length).toBe(1);
 
   // Upload that same form2 avatar, make sure it isn't replaced / deleted
   await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes3 = await alphaImage.listMedia();
-  expect(listMediaRes3.data.length).toBe(1);
+  expect(listMediaRes3.items.length).toBe(1);
 
   // make sure only the new avatar is kept
   const listMediaRes4 = await alphaImage.listMedia();
-  expect(listMediaRes4.data.length).toBe(1);
+  expect(listMediaRes4.items.length).toBe(1);
 
   // delete the avatar
   await alpha.deleteUserAvatar();
   // make sure only the new avatar is kept
   const listMediaRes5 = await alphaImage.listMedia();
-  expect(listMediaRes5.data.length).toBe(0);
+  expect(listMediaRes5.items.length).toBe(0);
   let my_user2 = await alpha.getMyUser();
   expect(my_user2.local_user_view.person.avatar).toBeUndefined();
 });
@@ -268,4 +270,62 @@ test("Make sure banned user can delete their account", async () => {
   let postAfterDelete = await getPost(alpha, postId);
   expect(postAfterDelete.post_view.post.deleted).toBe(true);
   expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
+});
+
+test("Admins can view and ban deleted accounts", async () => {
+  let user = await registerUser(beta, betaUrl);
+  let myUser = await getMyUser(user);
+  let apShortname = `${myUser.local_user_view.person.name}@lemmy-beta:8551`;
+  let userOnAlpha = await resolvePerson(alpha, apShortname);
+
+  let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+
+  // Make a post and then delete the account
+  let postRes = await createPost(user, alphaCommunity.community.id);
+  let deletedUser = await deleteUser(user, false);
+  expect(deletedUser).toBeDefined();
+  // Make sure the post is still visible
+  let postAfterDelete = await getPost(beta, postRes.post_view.post.id);
+  expect(postAfterDelete.post_view.post.deleted).toBe(false);
+
+  // Ensure admins can still resolve the user
+  let getDeletedUser = await getPersonDetails(
+    beta,
+    myUser.local_user_view.person.id,
+  );
+  expect(getDeletedUser).toBeDefined();
+
+  // Make sure the delete federates
+  await waitUntil(
+    () => getPersonDetails(alpha, userOnAlpha!.person.id),
+    p => p.person_view.person.deleted,
+  );
+
+  // Ban the user
+  let banUser = await banPersonFromSite(
+    beta,
+    myUser.local_user_view.person.id,
+    true,
+    true,
+  );
+  expect(banUser.person_view.banned).toBe(true);
+  // Make sure the post is removed
+  let postAfterBan = await getPost(beta, postRes.post_view.post.id);
+  expect(postAfterBan.post_view.post.removed).toBe(true);
+
+  // Make sure the ban federates properly
+  let getDeletedUserAlpha = await waitUntil(
+    () => getPersonDetails(alpha, userOnAlpha!.person.id),
+    p => p.person_view.banned,
+  );
+  // Make sure content removal also went through
+  let userContent = await listPersonContent(
+    alpha,
+    getDeletedUserAlpha.person_view.person.id,
+    "posts",
+  );
+  expect(userContent.data[0].post.removed).toBe(true);
 });
