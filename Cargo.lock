@@ -4234,6 +4234,7 @@ dependencies = [
  "rss",
  "serde",
  "serial_test",
+ "strum 0.27.2",
  "tokio",
  "tracing",
  "url",
