@@ -40,6 +40,7 @@ use tracing::{info, warn};
 use url::{Host, Url};
 use urlencoding::encode;
 use webpage::HTML;
+use reqwest::header;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
