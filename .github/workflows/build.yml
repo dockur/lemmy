@@ -72,6 +72,7 @@ jobs:
           [[ "${{ env.latest_tag }}" == *"alpha"* ]] && val="true"
           [[ "${{ env.latest_tag }}" == *"native"* ]] && val="true"
           [[ "${{ env.latest_tag }}" == *"no-triggers"* ]] && val="true"
+          [[ "${{ env.latest_tag }}" != *"0.19"* ]] && val="true"
 
           echo "beta=${beta}" >> $GITHUB_ENV
           echo "exists=${val}" >> $GITHUB_ENV
