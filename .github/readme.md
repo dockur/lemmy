@@ -40,7 +40,7 @@ docker run -it --rm --name lemmy -p 8536:8536 -v "./lemmy.hjson:/config/config.h
 ```
 
 ## Stars 🌟
-[![Stars](https://starchart.cc/dockur/lemmy.svg?variant=adaptive)](https://starchart.cc/dockur/lemmy)
+[![Stargazers](https://raw.githubusercontent.com/star-stats/stars/refs/heads/data/charts/dockur-lemmy.svg)](https://github.com/dockur/lemmy/stargazers)
 
 [build_url]: https://github.com/dockur/lemmy/
 [hub_url]: https://hub.docker.com/r/dockurr/lemmy/
