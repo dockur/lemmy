@@ -16,7 +16,7 @@ Multi-platform docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a lin
 
 ## Usage  🐳
 
-##### Via Docker Compose:
+##### Docker Compose:
 
 ```yaml
 services:
@@ -33,7 +33,7 @@ services:
     stop_grace_period: 1m
 ```
 
-##### Via Docker CLI:
+##### Docker CLI:
 
 ```bash
 docker run -it --rm --name lemmy -p 8536:8536 -v "./lemmy.hjson:/config/config.hjson" --stop-timeout 60 docker.io/dockurr/lemmy
