@@ -12,7 +12,15 @@
 
 </div></h1>
 
-Multi-platform docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a link aggregator and forum for the fediverse.
+Docker image of [Lemmy](https://github.com/LemmyNet/lemmy), a link aggregator and forum for the fediverse.
+
+## Features ✨
+
+- Runs Lemmy inside a Docker container
+- Provides a link aggregator and forum for the Fediverse
+- Supports ActivityPub federation with other Lemmy instances
+- Supports a custom `config.hjson` configuration file
+- Works on both AMD64 and ARM64 systems
 
 ## Usage  🐳
 
